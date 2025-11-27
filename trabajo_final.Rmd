@@ -1,0 +1,50 @@
+---
+title: "Recuperacion funcional"
+subtitle: |
+          | Proyecto final
+          | Introducción a los Modelos Multinivel
+author: 
+  - 'Bajac, Matías'
+  - 'Padín, Jimena'
+  - 'Viscailuz, Luciana'
+date: "2025"
+output: pdf_document
+bibliography: referencias.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+library(readxl)
+library(tidyverse)
+```
+
+_info proporcionada por el profe:_
+
+Esta investigaci´on tiene como objetivo evaluar el efecto de dos tratamientos (fisioterapia personalizada y cirug´ıa ortop´edica) en la recuperaci´on funcional de adultos mayores que han sufrido un traumatismo de mu˜neca por ca´ıdas. Este tipo de lesi´on es com´un en personas mayores con disminuci´on de reflejos o quilibrio y puede comprometer significativamente la autonom´ıa en actividades cotidianas como la alimentaci´on, la higiene personal o el uso de dispositivos. El estudio se basa en modelos multinivel (para datos longitudinales) que permiten analizar la evoluci´on funcional de los pacientes teniendo en cuenta el tratamiento recibido, incorporando como covariables el sexo, la edad al momento del traumatismo y la condici´on habitacional (residencia en domicilio propio o en instituci´on). Se cuenta con el estado funcional medido a trav´es del ´ındice de Barthel previo a la lesi´on, en el ingreso al hospital, al mes, a los 3 meses, al a˜no y a los 2 a˜nos. A partir de estos valores se calcul´o adem´as una tasa de recuperaci´on.
+
+```{r}
+data <- read_xlsx('recuperacion_funcional.xlsx')
+
+names(data)
+data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% group_by(id) %>% summarise(n=n()) %>% filter(n>1)
+```
+
+- sexo: variable nivel 1
+- edad: variable nivel 1 (posible centerig o movimiento por interpretacion)
+- tratamiento: 
+- domicilio: no cambian de domicilio durante el tratamiento. nivel 1
+- momento: el el tiempo, ver como codificar para interpretacion de gammas
+- barthel: variable nivel 2, es relevante ver la condicion antes de la caida
+- recuperacion: nivel 2
+
+no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad que antes de la lesion' o simplemente se quiere modelar respecto a recuperacion que esta entre 0-1.
+
+# Resumen
+
+# Introducción
+
+# Metodologia
+
+# Resultados
+
+# Bibliografía
