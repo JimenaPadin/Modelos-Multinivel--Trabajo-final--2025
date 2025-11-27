@@ -16,6 +16,8 @@ bibliography: referencias.bib
 knitr::opts_chunk$set(echo = F)
 library(readxl)
 library(tidyverse)
+library(rstatix)   # para hacer ANOVA RM
+
 ```
 
 _info proporcionada por el profe:_
@@ -27,6 +29,8 @@ data <- read_xlsx('recuperacion_funcional.xlsx')
 
 names(data)
 data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% group_by(id) %>% summarise(n=n()) %>% filter(n>1)
+
+
 ```
 
 - sexo: variable nivel 1
@@ -38,6 +42,51 @@ data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% group_by(id) %>% summar
 - recuperacion: nivel 2
 
 no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad que antes de la lesion' o simplemente se quiere modelar respecto a recuperacion que esta entre 0-1.
+
+
+
+```{r}
+data %>%
+  group_by(momento) %>%
+  get_summary_stats(barthel, type = 'mean_sd')
+
+ggplot(data, aes(x = momento, y = barthel, fill = momento)) +
+  geom_boxplot() + scale_x_discrete(limits = c("previo", "ingreso", "1 mes", "3 meses", "12 meses", "24 meses")) +
+  theme_bw() +
+  theme(text = element_text(size = 15)) + labs(title="Estado funcional del paciente en diferentes momentos", x="", y="Indice de Estado físico", fill="Momento") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+Un aspecto que suele ser muy importante es el equilibrio del número de observaciones por grupo. En los presentes datos, hay seis momentos del tiempo en los que se realizan mediciones de la variable de interés "Barthel". Sin embargo, no se tiene el mismo volumen de información disponible entre los diferentes momentos.
+
+En el momento previo al accidente y en el ingreso al hospital se tiene 327 valores diferentes de la variable de interes, pero, al transcurrir el tiempo la información disponible disminuye. Esto suele ser muy común debido a que es dificíl mantener el seguimiento durante el tiempo de un mismo individuo.
+
+Además, se presenta un gráfico para obtener una primera impresión del comportamiento de los datos frente a la variable de interés. En un principio, pareciera que la variable de interés presenta un comportamiento diferente en cada momento del tiempo.
+Previo al accidente, el valor suele ser bastante bueno, encontrandose por encima del 75. Luego, cuando ingresa al hospital producto del accidente, el estado físico disminuye notoriamente, para posteriormente volver a aumentar. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
+
+Se aplica el modelo Anova RM a una vía para detectar si hay un efecto temporal sobre el estado funcional de los individuos.
+
+```{r}
+#los datos ya están en formato long
+
+data %>%
+  group_by(id, momento) %>%
+  filter(n() > 1) %>%
+  arrange(id, momento) #el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica, es raro
+
+data = data %>% filter(id!=53) #saqué la observacion, están de acuerdo?
+
+# ANOVA a una vía, solo vemos si hay efecto temporal
+anova_test(data, dv = barthel, wid = id, within = momento) #ANOVA de medidas repetidas
+```
+
+Para poder utilizar este modelo, es necesario que se cumpla el supuesto de esfericidad, por lo que es necesario realizar el Test de Mauchly. El resultado lleva a rechazar la hipótesis nula, es decir, no se cumple el supuesto.
+
+Debido al resultado anterior es necesario realizar una corrección sobre los grados de libertad. Tras realizar dichas correcciones por Greenhouse-Geisser o Huynh-Feldt, se concluyé que si existe un efecto temporal sobre la variable de interés.
+
+ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENTO Y LA EDAD
+```{r}
+#AA
+```
 
 
 
