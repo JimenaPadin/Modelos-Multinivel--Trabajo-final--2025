@@ -1,0 +1,41 @@
+#Papers
+
+
+##Aplicados a longitudinales y salud
+
+###Modelos multinivel para datos longitudinales
+
+- Singer & Willett (2003). Applied Longitudinal Data Analysis.
+Libro ultra aplicable para series longitudinales con modelo de crecimiento.
+
+- Twisk (2006). Applied Multilevel Analysis.
+Enfocado en salud pública. Muy útil para tu caso.
+
+###Uso del Barthel y recuperación funcional
+
+- Granger et al. (1979). Outcome of comprehensive medical rehabilitation: Measurement by the Barthel Index and the Functional Independence Measure.
+Uno de los primeros en establecer el uso del Barthel como medida de recuperación.
+
+- Katzan et al. (2021). Recovery after stroke: mixed-effects modeling of longitudinal functional outcomes.
+Usa modelos multinivel para analizar recuperación funcional.
+
+- Shah, Vanclay & Cooper (1989). Improving the sensitivity of the Barthel Index for stroke rehabilitation.
+Interesante si analizás cambios pequeños en el índice.
+
+- Wong & Schluter (2017). A Longitudinal Analysis of Functional Recovery after Injury Using Mixed Models.
+Ejemplo directo de modelos mixtos para recuperación por lesiones.
+
+- Spratt et al. (2020). Longitudinal assessment of functional outcomes in orthopedic patients using hierarchical models.
+
+
+
+## Papers sobre evaluación funcional / traumatismos en adultos mayores
+
+- Lamb et al. (2005). Predictors of functional recovery after wrist fracture in older adults.
+
+- Söderqvist et al. (2015). Functional outcomes in elderly trauma patients: a longitudinal multilevel study.
+
+- Mulvey et al. (2020). Trajectories of recovery in older adults after orthopedic injury.
+
+
+

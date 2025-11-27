@@ -39,6 +39,8 @@ data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% group_by(id) %>% summar
 
 no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad que antes de la lesion' o simplemente se quiere modelar respecto a recuperacion que esta entre 0-1.
 
+
+
 # Resumen
 
 # Introducción
