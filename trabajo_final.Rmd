@@ -45,7 +45,14 @@ no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad q
 
 
 
+
 ```{r}
+data = data %>%  mutate(momento = factor(momento,levels=c("previo", "ingreso", "1 mes", "3 meses", "1 año", "2 años")),
+                        tratamiento = as.factor(tratamiento),
+              domicilio = as.factor(domicilio),
+                        sexo = as.factor(sexo),
+              id = as.factor(id))   
+
 data %>%
   group_by(momento) %>%
   get_summary_stats(barthel, type = 'mean_sd')
@@ -86,6 +93,48 @@ Debido al resultado anterior es necesario realizar una corrección sobre los gra
 ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENTO Y LA EDAD
 ```{r}
 #AA
+```
+
+
+## Posibles modelos
+
+```{r}
+## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
+mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal 
+## modelo con efecto aleatorio en la cte 
+mod1 = lmer(barthel ~ 1  + (1|id), data = data , REML = FALSE) 
+
+mod2 = lmer(barthel ~ 1  + tratamiento + (1|id),data= data, REML =FALSE)
+
+mod3 = lmer(barthel ~ 1  + tratamiento + edad + sexo +  (1|id),data= data, REML =FALSE)
+
+mod3 =  lmer(barthel ~ 1  + tratamiento*momento + edad + sexo + ( 1 |id),data= data, REML =FALSE)
+
+
+
+L0 <- logLik(mod0)
+L1 = logLik(mod1)
+L2= logLik(mod2)
+L3 = logLik(mod3)
+
+LRT <- -2*(L0 - L1)
+LRT2  = -2*(L1-L2)
+LRT3  = -2*(L2-L3)
+
+alfa <- 0.05
+anova(mod0,mod1)
+anova(mod2, mod1)
+
+
+qchisq(1 - 2*alfa, 1)
+# p-valor
+0.5*pchisq(LRT, 1, lower.tail = FALSE)
+## agregar un efecto  aleatorio tiene un aporte significativo 
+
+pchisq(LRT,c(1,2),lower.tail = FALSE) %>%  mean()
+
+anova(mod1,mod2)
+anova(mod2,mod3)
 ```
 
 
