@@ -16,7 +16,9 @@ bibliography: referencias.bib
 knitr::opts_chunk$set(echo = F)
 library(readxl)
 library(tidyverse)
-library(rstatix)   # para hacer ANOVA RM
+library(rstatix)
+library(GGally)
+# para hacer ANOVA RM
 
 ```
 
@@ -45,13 +47,21 @@ no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad q
 
 
 
+Habria que ver que hacer con la variable edad, tiene sentido centralizarla? 
 
 ```{r}
-data = data %>%  mutate(momento = factor(momento,levels=c("previo", "ingreso", "1 mes", "3 meses", "1 año", "2 años")),
+data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
+                                            momento == "ingreo" ~ 1,
+                                            momento == "1 mes" ~ 2,
+                                            momento == "3 meses" ~ 3,
+                                            momento == "1 año" ~ 4,
+                                            momento == "2 años" ~ 5,
+                                                TRUE ~ NA_real_),
                         tratamiento = as.factor(tratamiento),
               domicilio = as.factor(domicilio),
                         sexo = as.factor(sexo),
-              id = as.factor(id))   
+              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53)  
+
 
 data %>%
   group_by(momento) %>%
@@ -62,6 +72,8 @@ ggplot(data, aes(x = momento, y = barthel, fill = momento)) +
   theme_bw() +
   theme(text = element_text(size = 15)) + labs(title="Estado funcional del paciente en diferentes momentos", x="", y="Indice de Estado físico", fill="Momento") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
 ```
 Un aspecto que suele ser muy importante es el equilibrio del número de observaciones por grupo. En los presentes datos, hay seis momentos del tiempo en los que se realizan mediciones de la variable de interés "Barthel". Sin embargo, no se tiene el mismo volumen de información disponible entre los diferentes momentos.
 
@@ -80,20 +92,22 @@ data %>%
   filter(n() > 1) %>%
   arrange(id, momento) #el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica, es raro
 
-data = data %>% filter(id!=53) #saqué la observacion, están de acuerdo?
-
 # ANOVA a una vía, solo vemos si hay efecto temporal
 anova_test(data, dv = barthel, wid = id, within = momento) #ANOVA de medidas repetidas
 ```
 
 Para poder utilizar este modelo, es necesario que se cumpla el supuesto de esfericidad, por lo que es necesario realizar el Test de Mauchly. El resultado lleva a rechazar la hipótesis nula, es decir, no se cumple el supuesto.
+Ademas no se cumple el supuesto de que los datos esten balanceados, ya que tenemos datos faltantes en variables como momento o recuperacion. 
 
 Debido al resultado anterior es necesario realizar una corrección sobre los grados de libertad. Tras realizar dichas correcciones por Greenhouse-Geisser o Huynh-Feldt, se concluyé que si existe un efecto temporal sobre la variable de interés.
 
 ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENTO Y LA EDAD
 ```{r}
 #AA
+
+
 ```
+
 
 
 ## Posibles modelos
@@ -104,7 +118,7 @@ mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal
 ## modelo con efecto aleatorio en la cte 
 mod1 = lmer(barthel ~ 1  + (1|id), data = data , REML = FALSE) 
 
-mod2 = lmer(barthel ~ 1  + tratamiento + (1|id),data= data, REML =FALSE)
+mod2 = lmer(barthel ~   + tratamiento + (1|id),data= data, REML =FALSE)
 
 mod3 = lmer(barthel ~ 1  + tratamiento + edad + sexo +  (1|id),data= data, REML =FALSE)
 
@@ -138,10 +152,15 @@ anova(mod2,mod3)
 ```
 
 
+```{r}
+
+```
+
 
 # Resumen
 
 # Introducción
+
 
 # Metodologia
 
