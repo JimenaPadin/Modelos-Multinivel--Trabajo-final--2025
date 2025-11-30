@@ -18,8 +18,8 @@ library(readxl)
 library(tidyverse)
 library(rstatix)# para hacer ANOVA RM
 library(GGally)
-library(nlme)
 library(lme4)
+library(lmerTest) #para incluir los p valores
 ```
 
 *info proporcionada por el profe:*
@@ -90,7 +90,7 @@ data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
                         tratamiento = as.factor(tratamiento),
               domicilio = as.factor(domicilio),
                         sexo = as.factor(sexo),
-              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53)   %>%  filter(momento != 0, momento !=1)
+              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53) %>%  filter(momento != 0, momento !=1)
 #el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica
 
 data %>%
@@ -103,6 +103,22 @@ data %>%  group_by(momento)  %>%    summarise(r_recuperacion = cor(recuperacion,
 
 ## Posibles modelos
 
+Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
+
+DUDAS DE LU
+
+en un modelo base: mod2 = lmer(recuperacion \~ tratamiento + edad + (momento\|id),data= data) todas las variables son significativas, se entiende que el tratamiento que se aplique si sirve para explicar la recuperación del paciente, en cambio, cuando a este modelo se le incorpora la relación entre barthel y el tiempo, el tratamiento deja de ser significativo.
+
+La idea de incluir barthel\*momento es ver si el efecto del estado funcional del adulto varía con el tiempo?Esto tiene sentido?
+
+No habría que usar tratamient\*momento? mod6 = lmer(recuperacion \~ tratamiento\*momento + barthel + edad + (momento \|id),data=data) Al hacer esto tratamiento y la interacción dan que no son significativas, es decir, el efecto del tratamiento en el tiempo sobre los individuos no cambia entre tratamientos
+
+Si se saca barthel tratamiento y la interacción pasan a ser significativa
+
+Barthel tiene que estar en el modelo?
+
+Recuperación se calcula utilizando Barthel?
+
 ```{r}
 
 
@@ -113,22 +129,24 @@ mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal
 #al condicionar por id, se trabaja con que la unidad es el nivel 2 y las mediciones nivel 1, es decir, tenemos tantos grupos com individuos
 mod1 = lmer(barthel ~  edad  + (1|id), data = data , REML = FALSE) 
 
-mod2 = lmer(recuperacion ~ tratamiento +  (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendiente
-summary(mod2)
+library(lmerTest)
+#usando como recuperacion como variable dependiente
+mod2 = lmer(recuperacion ~ tratamiento + edad + (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendiente
+summary(mod2, ddf = "Kenward-Roger")
+
 
 
 mod3 = lmer(recuperacion ~ barthel*momento  + edad +  (momento|id),data= data) # interseccion barthel con momento 
+summary(mod3, ddf = "Kenward-Roger")
 
-summary(mod3)
 
+#al incluir la interacción entre barthel y momento, la variable tratamiento deja de ser significativa
  mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad  + (momento|id),data=data) ## boundary !!
 
-summary(mod4)
+summary(mod4, ddf = "Kenward-Roger")
 
-#otro modelo
 
-mod5 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad + sexo + (momento |id),data=data) 
-summary(mod5)
+
 
 L0 <- logLik(mod0)
 L1 = logLik(mod1)
@@ -153,6 +171,21 @@ pchisq(LRT,c(1,2),lower.tail = FALSE) %>%  mean()
 
 anova(mod1,mod2)
 anova(mod2,mod3)
+
+
+#otros modelo
+
+mod5 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + sexo + (momento |id),data=data) 
+summary(mod5, ddf = "Kenward-Roger")
+#el sexo no me da significativo
+
+mod6 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + (momento |id),data=data) 
+summary(mod6, ddf = "Kenward-Roger")
+#el tratamiento no explica nada
+
+#si se saca barthel tratamiento pasa a ser significativo
+mod6 = lmer(recuperacion ~ tratamiento*momento + edad + (momento |id),data=data) 
+summary(mod6, ddf = "Kenward-Roger")
 
 data
 ```
