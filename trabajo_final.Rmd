@@ -47,20 +47,25 @@ no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad q
 
 
 
-Habria que ver que hacer con la variable edad, tiene sentido centralizarla? 
+Habria que ver que hacer con la variable edad, tiene sentido centralizarla? sirve para la interpretacion de los coeficientes.
+edad negativa quiere decir que en el momento t  tenia menos anios que la edad promedio...
+
+
+
+ver del momento .... filtraria a partir del momento 1 mes que es donde empieza el tratamiento 
 
 ```{r}
 data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
-                                            momento == "ingreo" ~ 1,
+                                            momento == "ingreso" ~ 1,
                                             momento == "1 mes" ~ 2,
                                             momento == "3 meses" ~ 3,
-                                            momento == "1 año" ~ 4,
-                                            momento == "2 años" ~ 5,
+                                            momento == "	12 meses" ~ 4,
+                                            momento == "24 meses" ~ 5,
                                                 TRUE ~ NA_real_),
                         tratamiento = as.factor(tratamiento),
               domicilio = as.factor(domicilio),
                         sexo = as.factor(sexo),
-              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53)  
+              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53)   %>%  filter(momento != 0, momento !=1)
 
 
 data %>%
@@ -73,6 +78,10 @@ ggplot(data, aes(x = momento, y = barthel, fill = momento)) +
   theme(text = element_text(size = 15)) + labs(title="Estado funcional del paciente en diferentes momentos", x="", y="Indice de Estado físico", fill="Momento") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+data %>%  group_by(momento)  %>%    summarise(r_recuperacion = cor(recuperacion,barhel),
+            r_hamd_dmi = cor(hamd,ln_dmi))
+
+
 
 ```
 Un aspecto que suele ser muy importante es el equilibrio del número de observaciones por grupo. En los presentes datos, hay seis momentos del tiempo en los que se realizan mediciones de la variable de interés "Barthel". Sin embargo, no se tiene el mismo volumen de información disponible entre los diferentes momentos.
@@ -83,6 +92,7 @@ Además, se presenta un gráfico para obtener una primera impresión del comport
 Previo al accidente, el valor suele ser bastante bueno, encontrandose por encima del 75. Luego, cuando ingresa al hospital producto del accidente, el estado físico disminuye notoriamente, para posteriormente volver a aumentar. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
 
 Se aplica el modelo Anova RM a una vía para detectar si hay un efecto temporal sobre el estado funcional de los individuos.
+Este modelo tiene la debilidad de que solo acepta variables categoricas.
 
 ```{r}
 #los datos ya están en formato long
@@ -97,7 +107,7 @@ anova_test(data, dv = barthel, wid = id, within = momento) #ANOVA de medidas rep
 ```
 
 Para poder utilizar este modelo, es necesario que se cumpla el supuesto de esfericidad, por lo que es necesario realizar el Test de Mauchly. El resultado lleva a rechazar la hipótesis nula, es decir, no se cumple el supuesto.
-Ademas no se cumple el supuesto de que los datos esten balanceados, ya que tenemos datos faltantes en variables como momento o recuperacion. 
+Ademas no se cumple el supuesto de que los datos esten balanceados, ya que tenemos datos faltantes en variables como momento o recuperacion.  
 
 Debido al resultado anterior es necesario realizar una corrección sobre los grados de libertad. Tras realizar dichas correcciones por Greenhouse-Geisser o Huynh-Feldt, se concluyé que si existe un efecto temporal sobre la variable de interés.
 
@@ -113,18 +123,24 @@ ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENT
 ## Posibles modelos
 
 ```{r}
+
+
 ## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
 mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal 
 ## modelo con efecto aleatorio en la cte 
-mod1 = lmer(barthel ~ 1  + (1|id), data = data , REML = FALSE) 
+mod1 = lmer(barthel ~  edad  + (1|id), data = data , REML = FALSE) 
 
-mod2 = lmer(barthel ~   + tratamiento + (1|id),data= data, REML =FALSE)
-
-mod3 = lmer(barthel ~ 1  + tratamiento + edad + sexo +  (1|id),data= data, REML =FALSE)
-
-mod3 =  lmer(barthel ~ 1  + tratamiento*momento + edad + sexo + ( 1 |id),data= data, REML =FALSE)
+mod2 = lmer(recuperacion ~ tratamiento +  (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendeiente 
+summary(mod2)
 
 
+mod3 = lmer(recuperacion ~ barthel*momento  + edad +  (momento|id),data= data) # interseccion barthel con momento 
+
+summary(mod3)
+
+ mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad + (momento|id),data=data) ## boundary !!
+
+summary(mod4)
 
 L0 <- logLik(mod0)
 L1 = logLik(mod1)
@@ -149,12 +165,16 @@ pchisq(LRT,c(1,2),lower.tail = FALSE) %>%  mean()
 
 anova(mod1,mod2)
 anova(mod2,mod3)
+
+data
 ```
 
 
-```{r}
 
-```
+
+### especificaciones de los modelos 
+
+
 
 
 # Resumen
