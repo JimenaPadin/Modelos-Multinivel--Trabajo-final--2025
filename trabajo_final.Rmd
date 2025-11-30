@@ -16,45 +16,70 @@ bibliography: referencias.bib
 knitr::opts_chunk$set(echo = F)
 library(readxl)
 library(tidyverse)
-library(rstatix)
+library(rstatix)# para hacer ANOVA RM
 library(GGally)
-# para hacer ANOVA RM
-
+library(nlme)
+library(lme4)
 ```
 
-_info proporcionada por el profe:_
+*info proporcionada por el profe:*
 
 Esta investigaci´on tiene como objetivo evaluar el efecto de dos tratamientos (fisioterapia personalizada y cirug´ıa ortop´edica) en la recuperaci´on funcional de adultos mayores que han sufrido un traumatismo de mu˜neca por ca´ıdas. Este tipo de lesi´on es com´un en personas mayores con disminuci´on de reflejos o quilibrio y puede comprometer significativamente la autonom´ıa en actividades cotidianas como la alimentaci´on, la higiene personal o el uso de dispositivos. El estudio se basa en modelos multinivel (para datos longitudinales) que permiten analizar la evoluci´on funcional de los pacientes teniendo en cuenta el tratamiento recibido, incorporando como covariables el sexo, la edad al momento del traumatismo y la condici´on habitacional (residencia en domicilio propio o en instituci´on). Se cuenta con el estado funcional medido a trav´es del ´ındice de Barthel previo a la lesi´on, en el ingreso al hospital, al mes, a los 3 meses, al a˜no y a los 2 a˜nos. A partir de estos valores se calcul´o adem´as una tasa de recuperaci´on.
 
-```{r}
+```{r, echo=FALSE, include=FALSE, datos}
 data <- read_xlsx('recuperacion_funcional.xlsx')
 
 names(data)
-data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% group_by(id) %>% summarise(n=n()) %>% filter(n>1)
-
-
+data %>% group_by(id,domicilio) %>% summarise(n=n()) %>% filter(n>1)
 ```
 
-- sexo: variable nivel 1
-- edad: variable nivel 1 (posible centerig o movimiento por interpretacion)
-- tratamiento: 
-- domicilio: no cambian de domicilio durante el tratamiento. nivel 1
-- momento: el el tiempo, ver como codificar para interpretacion de gammas
-- barthel: variable nivel 2, es relevante ver la condicion antes de la caida
-- recuperacion: nivel 2
+-   sexo: variable nivel 1
+-   edad: variable nivel 1 (posible centerig o movimiento por interpretacion)
+-   tratamiento:
+-   domicilio: no cambian de domicilio durante el tratamiento. nivel 1
+-   momento: el el tiempo, ver como codificar para interpretacion de gammas
+-   barthel: variable nivel 2, es relevante ver la condicion antes de la caida
+-   recuperacion: nivel 2
 
 no se si se queire hacer una logistica con variable 'alcanzo la misma agilidad que antes de la lesion' o simplemente se quiere modelar respecto a recuperacion que esta entre 0-1.
 
+Habria que ver que hacer con la variable edad, tiene sentido centralizarla? sirve para la interpretacion de los coeficientes. edad negativa quiere decir que en el momento t tenia menos anios que la edad promedio...
 
+ver del momento .... filtraria a partir del momento 1 mes que es donde empieza el tratamiento
 
-Habria que ver que hacer con la variable edad, tiene sentido centralizarla? sirve para la interpretacion de los coeficientes.
-edad negativa quiere decir que en el momento t  tenia menos anios que la edad promedio...
+# Introducción
 
+### Análisis de los datos
 
+Se cuenta con la información de 339 adultos mayores que sufrieron un traumatismo de muñeca, producto de una caída. A cada uno de estos individuos se les aplicó un tratamiento (cirugía o fisioterapia), y se les realizó un seguimiento de su estado funcional, medido a partir del índice de Berthel, y con este se calculó su recuperación. Se recabó información en seis momentos diferentes, previo al accidente, al momento en que se ingresó en el hospital, al mes, tres meses, al año y a los dos años.
 
-ver del momento .... filtraria a partir del momento 1 mes que es donde empieza el tratamiento 
+No se obtuvo el mismo volumen de información para cada individuo, mientras que para algunos individuos si se tiene información sobre su evolución en todos los momentos de interés, para otros, solo se tiene en algunos. Además, el volumen de información a medida que avanza el tiempo, disminuye, esto es algo muy común y se suele dar por diversas razones, las principales son que los individuos decidieron abandonar el análisis, o que fallecieron.
 
-```{r}
+A continuación, se presenta un gráfico para obtener una primera impresión del comportamiento de los datos frente a la variable de interés. En un principio, pareciera que la variable de interés presenta un comportamiento diferente en cada momento del tiempo. Previo al accidente, el valor suele ser bastante bueno, encontrandose por encima del 75. Luego, cuando ingresa al hospital producto del accidente, el estado físico disminuye notoriamente, para posteriormente volver a aumentar. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
+
+```{r, echo=FALSE, warning=FALSE, Grafico}
+ggplot(data, aes(x = momento, y = barthel, fill = momento)) +
+  geom_boxplot() + scale_x_discrete(limits = c("previo", "ingreso", "1 mes", "3 meses", "12 meses", "24 meses")) +
+  theme_bw() +
+  theme(text = element_text(size = 15)) + labs(title="Estado funcional del paciente en diferentes momentos", x="", y="Indice de Estado físico", fill="Momento") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+```
+
+# Metodologia
+
+Al trabajar con medidas repetidas, hay varios modelos posibles, entre ellos el RM – ANOVA, el cual es una adaptación del modelo ANOVA para medidas repetidas. Este no es el que se utilizó para el presente análisis, ya que supone que los datos deben estar balanceados, y como se mencionó anteriormente, en los datos disponibles esto no sucede.
+
+Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos Mixtos (LME), debido a que es mucho más flexible con respecto a los supuestos y presenta varias ventajas con respecto al modelo anterior.
+
+Previo a crear los modelos, se realizaron algunos ajustes sobre los datos. La variable momento se pasó a numérica, siendo 0 el momento previo al accidente, algunas otras se pasaron a factor, se centró la edad y se eliminó una observación que causaba diversos errores y pareciera estar incorrectamente registrada.
+
+Se decidió centrar la variable edad, debido a que como se mencionó anteriormente, corresponde a la edad del paciente al momento del accidente, la cual varía considerablemente. Esto además permite que las interpretaciones del intercepto del modelo final sean con respecto a adultos que sufrieron el traumatismo en la edad promedio, la cual es 84 años.
+
+AGREGAR ALGO SOBRE QUE ES A PARTIR DEL MOMENTO 2
+
+```{r, echo=FALSE, include=FALSE, ajustes-datos}
+
+#data %>% summarise(var(edad), min(edad), max(edad), mean(edad))
 data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
                                             momento == "ingreso" ~ 1,
                                             momento == "1 mes" ~ 2,
@@ -66,59 +91,15 @@ data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
               domicilio = as.factor(domicilio),
                         sexo = as.factor(sexo),
               id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53)   %>%  filter(momento != 0, momento !=1)
-
+#el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica
 
 data %>%
   group_by(momento) %>%
   get_summary_stats(barthel, type = 'mean_sd')
 
-ggplot(data, aes(x = momento, y = barthel, fill = momento)) +
-  geom_boxplot() + scale_x_discrete(limits = c("previo", "ingreso", "1 mes", "3 meses", "12 meses", "24 meses")) +
-  theme_bw() +
-  theme(text = element_text(size = 15)) + labs(title="Estado funcional del paciente en diferentes momentos", x="", y="Indice de Estado físico", fill="Momento") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-data %>%  group_by(momento)  %>%    summarise(r_recuperacion = cor(recuperacion,barhel),
-            r_hamd_dmi = cor(hamd,ln_dmi))
-
-
+data %>%  group_by(momento)  %>%    summarise(r_recuperacion = cor(recuperacion,barthel))
 
 ```
-Un aspecto que suele ser muy importante es el equilibrio del número de observaciones por grupo. En los presentes datos, hay seis momentos del tiempo en los que se realizan mediciones de la variable de interés "Barthel". Sin embargo, no se tiene el mismo volumen de información disponible entre los diferentes momentos.
-
-En el momento previo al accidente y en el ingreso al hospital se tiene 327 valores diferentes de la variable de interes, pero, al transcurrir el tiempo la información disponible disminuye. Esto suele ser muy común debido a que es dificíl mantener el seguimiento durante el tiempo de un mismo individuo.
-
-Además, se presenta un gráfico para obtener una primera impresión del comportamiento de los datos frente a la variable de interés. En un principio, pareciera que la variable de interés presenta un comportamiento diferente en cada momento del tiempo.
-Previo al accidente, el valor suele ser bastante bueno, encontrandose por encima del 75. Luego, cuando ingresa al hospital producto del accidente, el estado físico disminuye notoriamente, para posteriormente volver a aumentar. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
-
-Se aplica el modelo Anova RM a una vía para detectar si hay un efecto temporal sobre el estado funcional de los individuos.
-Este modelo tiene la debilidad de que solo acepta variables categoricas.
-
-```{r}
-#los datos ya están en formato long
-
-data %>%
-  group_by(id, momento) %>%
-  filter(n() > 1) %>%
-  arrange(id, momento) #el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica, es raro
-
-# ANOVA a una vía, solo vemos si hay efecto temporal
-anova_test(data, dv = barthel, wid = id, within = momento) #ANOVA de medidas repetidas
-```
-
-Para poder utilizar este modelo, es necesario que se cumpla el supuesto de esfericidad, por lo que es necesario realizar el Test de Mauchly. El resultado lleva a rechazar la hipótesis nula, es decir, no se cumple el supuesto.
-Ademas no se cumple el supuesto de que los datos esten balanceados, ya que tenemos datos faltantes en variables como momento o recuperacion.  
-
-Debido al resultado anterior es necesario realizar una corrección sobre los grados de libertad. Tras realizar dichas correcciones por Greenhouse-Geisser o Huynh-Feldt, se concluyé que si existe un efecto temporal sobre la variable de interés.
-
-ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENTO Y LA EDAD
-```{r}
-#AA
-
-
-```
-
-
 
 ## Posibles modelos
 
@@ -128,9 +109,11 @@ ESE ES UN MODELO BASE, HAY QUE HACER UNO DONDE SE INCLUYA LA VARIABLE TRATAMIENT
 ## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
 mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal 
 ## modelo con efecto aleatorio en la cte 
+
+#al condicionar por id, se trabaja con que la unidad es el nivel 2 y las mediciones nivel 1, es decir, tenemos tantos grupos com individuos
 mod1 = lmer(barthel ~  edad  + (1|id), data = data , REML = FALSE) 
 
-mod2 = lmer(recuperacion ~ tratamiento +  (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendeiente 
+mod2 = lmer(recuperacion ~ tratamiento +  (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendiente
 summary(mod2)
 
 
@@ -138,9 +121,14 @@ mod3 = lmer(recuperacion ~ barthel*momento  + edad +  (momento|id),data= data) #
 
 summary(mod3)
 
- mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad + (momento|id),data=data) ## boundary !!
+ mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad  + (momento|id),data=data) ## boundary !!
 
 summary(mod4)
+
+#otro modelo
+
+mod5 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad + sexo + (momento |id),data=data) 
+summary(mod5)
 
 L0 <- logLik(mod0)
 L1 = logLik(mod1)
@@ -169,20 +157,9 @@ anova(mod2,mod3)
 data
 ```
 
+### especificaciones de los modelos
 
-
-
-### especificaciones de los modelos 
-
-
-
-
-# Resumen
-
-# Introducción
-
-
-# Metodologia
+# 
 
 # Resultados
 
