@@ -205,7 +205,18 @@ Se procede a plantear el modelo 0 y definir la estructura de la matriz D, donde 
 
 - **b_prev**: Indice de Barthel previo a la lesion
 
+Estudio la correlacion entre la variable dependiente recuperacion en cada momento del tiempo para la variable barthel
+```{r}
 
+
+data |>
+  group_by(momento2) |>
+  summarise(r_barthel = cor(barthel,recuperacion,use = "complete.obs"))
+            
+
+
+
+```
 
 
 
@@ -359,7 +370,7 @@ Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sob
 
 ```{r}
 mod3 <- lmer(recuperacion ~ barthel + momento2 + tratamiento +
-                            momento:tratamiento +
+                            momento2:tratamiento +
                             edad + (momento2 | id),
              data = data)
 summary(mod3, ddf = "Kenward-Roger")
@@ -371,7 +382,7 @@ Se permite intepretar que la evolución de la recuperación de los pacientes no 
 #peeero:
 
 #MODELO FINAL)?
-mod4= lmer(recuperacion ~ barthel*momento2  + edad + (momento2|id),data= data)
+mod4= lmer(recuperacion ~ barthel*momento2  + edad + (1|id),data= data)
 summary(mod4, ddf = "Kenward-Roger")
 
 #si se detecta que la relación entre el barthel y la recuperación cambia con el tiempo
@@ -380,6 +391,9 @@ summary(mod4, ddf = "Kenward-Roger")
 #PROBLEMA: HAY MUCHOS BOUNDARY, NO SE VAN CON NADA :(
 ```
 
+$$R_{ij} = \beta_{0i} + (\beta_{1i}Tratamiento_{ij})*(Momento2_{ij}) + \beta_{2i}edad_{ij} + \epsilon_{ij}$$
+$$\beta_{0i} = \gamma_{00} +\eta_{0i}$$
+$$\beta_{1i} = \gamma_{10} +\eta_{1i}$$
 Se llegó a un modelo final, el cual permite cumplir con los objetivos planteados, sin embargo, se abre espacio a mejorar el presentado modelo, debido a que problemas como el de la matriz singular persisten.
 
 # Bibliografía
