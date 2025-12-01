@@ -73,24 +73,24 @@ Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos M
 
 Previo a crear los modelos, se realizaron algunos ajustes sobre los datos. La variable momento se pasó a numérica, siendo 0 el momento previo al accidente, algunas otras se pasaron a factor, se centró la edad y se eliminó una observación que causaba diversos errores y pareciera estar incorrectamente registrada.
 
-Se decidió centrar la variable edad, debido a que como se mencionó anteriormente, corresponde a la edad del paciente al momento del accidente, la cual varía considerablemente. Esto además permite que las interpretaciones del intercepto del modelo final sean con respecto a adultos que sufrieron el traumatismo en la edad promedio, la cual es 84 años.
+Se decidió centrar la variable edad, debido a que como se mencionó anteriormente, corresponde a la edad del paciente al momento del accidente, la cual varía considerablemente. Esto además permite que las interpretaciones del intercepto del modelo final sean con respecto a adultos que sufrieron el traumatismo en la edad promedio, la cual es 60 años según información recabada.
 
-AGREGAR ALGO SOBRE QUE ES A PARTIR DEL MOMENTO 2
+AGREGAR ALGO SOBRE LOS MOMENTOS
 
 ```{r, echo=FALSE, include=FALSE, ajustes-datos}
 
 #data %>% summarise(var(edad), min(edad), max(edad), mean(edad))
-data = data %>%  mutate(momento = case_when(momento == "previo" ~ 0,
-                                            momento == "ingreso" ~ 1,
-                                            momento == "1 mes" ~ 2,
-                                            momento == "3 meses" ~ 3,
-                                            momento == "	12 meses" ~ 4,
-                                            momento == "24 meses" ~ 5,
+data = data %>%  mutate(momento = case_when(momento == "previo" ~ -2,
+                                            momento == "ingreso" ~ -1,
+                                            momento == "1 mes" ~ 0,
+                                            momento == "3 meses" ~ 2,
+                                            momento == "	12 meses" ~ 11,
+                                            momento == "24 meses" ~ 23,
                                                 TRUE ~ NA_real_),
                         tratamiento = as.factor(tratamiento),
               domicilio = as.factor(domicilio),
                         sexo = as.factor(sexo),
-              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53) %>%  filter(momento != 0, momento !=1)
+              id = as.factor(id), edad = edad - mean(edad)) %>% filter(id!=53) %>%  filter(momento != -2)
 #el id 53 tiene más de una medida para un mismo momento del tiempo, la edad en cada momento tampoco tiene lógica
 
 data %>%
@@ -105,48 +105,62 @@ data %>%  group_by(momento)  %>%    summarise(r_recuperacion = cor(recuperacion,
 
 Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
 
-DUDAS DE LU
-
-en un modelo base: mod2 = lmer(recuperacion \~ tratamiento + edad + (momento\|id),data= data) todas las variables son significativas, se entiende que el tratamiento que se aplique si sirve para explicar la recuperación del paciente, en cambio, cuando a este modelo se le incorpora la relación entre barthel y el tiempo, el tratamiento deja de ser significativo.
-
-La idea de incluir barthel\*momento es ver si el efecto del estado funcional del adulto varía con el tiempo?Esto tiene sentido?
-
-No habría que usar tratamient\*momento? mod6 = lmer(recuperacion \~ tratamiento\*momento + barthel + edad + (momento \|id),data=data) Al hacer esto tratamiento y la interacción dan que no son significativas, es decir, el efecto del tratamiento en el tiempo sobre los individuos no cambia entre tratamientos
-
-Si se saca barthel tratamiento y la interacción pasan a ser significativa
-
-Barthel tiene que estar en el modelo?
-
-Recuperación se calcula utilizando Barthel?
-
 ```{r}
 
 
 ## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
-mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal 
 ## modelo con efecto aleatorio en la cte 
 
 #al condicionar por id, se trabaja con que la unidad es el nivel 2 y las mediciones nivel 1, es decir, tenemos tantos grupos com individuos
-mod1 = lmer(barthel ~  edad  + (1|id), data = data , REML = FALSE) 
 
-library(lmerTest)
 #usando como recuperacion como variable dependiente
-mod2 = lmer(recuperacion ~ tratamiento + edad + (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendiente
+#MODELO BASE
+
+#edad y sexo efectos fijos porque no cambian dentro del mismo id
+mod0 = lmer(recuperacion ~ sexo + edad + momento + (1|id), data= data)
+summary(mod0, ddf = "Kenward-Roger")
+mod0 = lmer(recuperacion ~ sexo + edad + (momento|id), data= data)
+summary(mod0, ddf = "Kenward-Roger")
+
+#aparece el warning de boundary pero la varianza es mayor a 0, no se encontraron mejores resultados y se entiende que el efecto aleatorio por id debe estar. En los denás casos la varianza del intercepto daba 0 en la matriz D
+
+
+#se saca sexo porque no es significativa
+#tratamiento como efecto fijo porque nos interesa saber el efecto de esta variable en si misma, queremos saber si la evolución de los pacientes cambia por tratamiento, por lo cual, no lo vamos a condicionar al paciente 
+
+mod1= lmer(recuperacion ~ edad + tratamiento + (momento|id),data= data)
+summary(mod1, ddf = "Kenward-Roger")
+#PARECIERA que el tratamiento significativo, es decir que si incide en la recuperación
+
+mod2= lmer(recuperacion ~ barthel + edad +  tratamiento+ (momento|id),data= data)
 summary(mod2, ddf = "Kenward-Roger")
+#al incluir barthel parece que tratamiento no es significatiuvo, en realidad esto no quiere decir que no lo sea, sino que barthel explica parte de lo que antes el tratamiento, sucede una confusión porque barrthel y tratamiento son variables que están correlacionadas entre sí, dependiendo del valor de barthel el tratamiento que se le asigna
+#el modelo ahora puede separar qué parte de la recuperación se debe al nivel funcional y cuál al tratamiento.
+#en mod1 parecia que un tratamiento era mejor que otro, pero en realidad no es taaan así, lo que pasa es que como un tratamiento se aplica a los que están mejor puede parecer que ese tratamiento es mejor y no es así.
+#el tratamiento no explica diferencias en recuperacion, quien lo hace es barthel (efecto que antes se le asignabva erroneamente a tratamiento)
 
-
-
-mod3 = lmer(recuperacion ~ barthel*momento  + edad +  (momento|id),data= data) # interseccion barthel con momento 
+mod3 <- lmer(recuperacion ~ barthel + momento + tratamiento +
+                            momento:tratamiento +
+                            edad + (momento | id),
+             data = data)
 summary(mod3, ddf = "Kenward-Roger")
+#RESPUESTA A NUESTRA PREGUNTA SE HACE CON MOD3:
+#momento:tratamiento da no significativo, es decir que el tratamiento no incide en la forma que evoluciona la recuperacion con el tiempo
 
+#evoluci´on de estos pacientes seg´un el tratamiento: no cambia
+#peeero:
 
-#al incluir la interacción entre barthel y momento, la variable tratamiento deja de ser significativa
- mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad  + (momento|id),data=data) ## boundary !!
-
+#MODELO FINAL)?
+mod4= lmer(recuperacion ~ barthel*momento  + edad + (momento|id),data= data)
 summary(mod4, ddf = "Kenward-Roger")
 
+#si se detecta que la relación entre el barthel y la recuperación cambia con el tiempo
 
 
+#PROBLEMA: HAY MUCHOS BOUNDARY, NO SE VAN CON NADA :(
+
+
+#ESTO TODAVÍA NO LLEGUÉ A VERLO
 
 L0 <- logLik(mod0)
 L1 = logLik(mod1)
@@ -171,21 +185,6 @@ pchisq(LRT,c(1,2),lower.tail = FALSE) %>%  mean()
 
 anova(mod1,mod2)
 anova(mod2,mod3)
-
-
-#otros modelo
-
-mod5 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + sexo + (momento |id),data=data) 
-summary(mod5, ddf = "Kenward-Roger")
-#el sexo no me da significativo
-
-mod6 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + (momento |id),data=data) 
-summary(mod6, ddf = "Kenward-Roger")
-#el tratamiento no explica nada
-
-#si se saca barthel tratamiento pasa a ser significativo
-mod6 = lmer(recuperacion ~ tratamiento*momento + edad + (momento |id),data=data) 
-summary(mod6, ddf = "Kenward-Roger")
 
 data
 ```
