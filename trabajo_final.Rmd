@@ -100,7 +100,7 @@ data %>% ggplot()+
 
 En la Figura @ref{plot1} se muestra la distribución del Índice de Barthel en cada uno de los momentos de medición, con el objetivo de obtener una primera impresión de la evolución funcional de los pacientes. Se observa que, antes de la lesión, los individuos presentan niveles elevados de independencia funcional, en general por encima de 75 puntos. Tras el ingreso hospitalario, el puntaje disminuye de forma marcada, reflejando el estado físico asociado al evento. A partir del primer mes, los valores comienzan a incrementarse nuevamente, acompañando el proceso de recuperación. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
 
-```{r}
+```{r} 
 b_prev <- data %>% filter(momento=='previo') %>% 
    mutate(b_prev = barthel) %>% select(id,b_prev) %>% unique()
 b_ini <- data %>% filter(momento=='ingreso') %>% 
@@ -118,6 +118,18 @@ data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    theme_bw()+
    scale_color_viridis_d()
 ```
+Veamos la variablidad de edades para esta muestra mediante un histograma, vemos que la mayoria de las personas que ingresaron al tratamiento tienen entre  80 y 90 años 
+
+```{r}
+data_id <- data %>% 
+  distinct(id, .keep_all = TRUE)
+
+ggplot(data_id, aes(x = edad)) +
+  geom_histogram(bins = 15, fill = "steelblue", color = "black") 
+
+
+```
+
 
 # Metodología
 
@@ -134,7 +146,9 @@ Para la creación de modelos se establece como variable dependiente la recuperac
 data <- data %>% filter(momento!='previo')
 ```
 
--   En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso y se codifica {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
+-   En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso, la metrica temporal que de la forma:  {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
+
+
 
 ```{r}
 data = data %>%  
@@ -144,6 +158,9 @@ data = data %>%
                               momento == "12 meses" ~ 11,
                               momento == "24 meses" ~ 23,
                               TRUE ~ NA_real_))
+
+
+
 ```
 
 -   Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo ($edad2 = edad-60$).
@@ -155,9 +172,47 @@ data <- data %>%
           domicilio = as.factor(domicilio),
           sexo = as.factor(sexo),
           id = as.factor(id))
+
+
 ```
 
 Se procede a plantear el modelo 0 y definir la estructura de la matriz D, donde se utiliza `anova` para evaluar la significación de las constantes y pendientes aleatorias.
+
+## Descripción de las variables 
+
+- **Recuperación**: Variable dependiente 
+
+- **Tratamiento** : Variable categórica que indica el típo de tratamiento que es sometido el paciente luego de la lesión, esta es una variable de nivel 2 ya que este no cambia en el tiempo.
+
+- **momento**: Variable que toma valores: "previo", "ingreso","1 mes", "3 meses", "12 meses" y "24 meses"
+
+- **barthel** variable continua  que mide la capacidad funcional del indiivudo, va desde 0 hasta 100. Variable de nivel tipo 1 ya que varia en el tiempo. 
+
+- **edad** variable de edad de los individuos al momento del ingreso. Variable de nivel 2. 
+
+- **domicilio**: Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una varible de nivel 1.
+
+- **Sexo**
+
+
+## Variables creadas 
+
+- **momento2** : variable que toma como referencia el primer mes luego del ingreso, la metrica temporal queda definida como: $\{-1, 0, 2, 11, 23\}$, es una variable de nivel 1 ya que esta variable cambia en el tiempo.
+
+- **edad2** variable de edad de los individuos a la hora del ingreso , centrada en 60 años. 
+
+- **b_ini**: Indice de Barthel al final de la lesión
+
+- **b_prev**: Indice de Barthel previo a la lesion
+
+
+
+
+
+
+
+
+
 
 Después se establecen diferentes modelos...
 
@@ -242,6 +297,17 @@ data
 
 Modelo 0: *esto deberia ir en metodologia* $$recuperacion_{ij} = \beta_{0i} + \beta_{1i}t_{ij} + \varepsilon_{ij}$$ $$\beta_{0i}=\gamma_{00}+\eta_{0i}$$ $$\beta_{1i}=\gamma_{10}$$ *si aca se agrega la variable aleatoria eta queda con pendientes aleatorias dependientes de momentos*
 
+$$R_{ij} = \beta_{0i} +\beta_{1i}momento2_{ij} + \epsilon_{ij} \rightarrow \ ecuación\  de\  nivel\ 1$$ 
+donde:
+
+$$\beta_{0i}=\gamma_{00}+\eta_{0i} \rightarrow ecuación\ de\ nivel\ 2\ para\ la\ constante$$ 
+
+La interpretación del $gamma_{00}$ seria la recuperación media de la población en el primer mes del ingreso. 
+
+
+$$\beta_{1i}=\gamma_{10} \ ecuación \ de \ nivel\ 2 $$
+
+
 ```{r}
 mod0 <- lmer(recuperacion~ momento2 + (1|id), data = data)
 summary(mod0)
@@ -279,7 +345,7 @@ summary(mod1, ddf = "Kenward-Roger")
 En un principio, pareciera que el tratamiento si presenta un efecto sobre la recuperación, sin embargo, al crear un nuevo modelo incorporando la variable barthel las interpretaciones se ven afectadas.
 
 ```{r}
-mod2= lmer(recuperacion ~ barthel + edad +  tratamiento+ (momento|id),data= data)
+mod2= lmer(recuperacion ~ barthel + edad +  tratamiento+ (momento2|id),data= data)
 summary(mod2, ddf = "Kenward-Roger")
 ```
 
@@ -292,9 +358,9 @@ Por lo mencionado, en un anterior modelo se observaba que la recuperación cambi
 Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
 
 ```{r}
-mod3 <- lmer(recuperacion ~ barthel + momento + tratamiento +
+mod3 <- lmer(recuperacion ~ barthel + momento2 + tratamiento +
                             momento:tratamiento +
-                            edad + (momento | id),
+                            edad + (momento2 | id),
              data = data)
 summary(mod3, ddf = "Kenward-Roger")
 ```
@@ -305,7 +371,7 @@ Se permite intepretar que la evolución de la recuperación de los pacientes no 
 #peeero:
 
 #MODELO FINAL)?
-mod4= lmer(recuperacion ~ barthel*momento  + edad + (momento|id),data= data)
+mod4= lmer(recuperacion ~ barthel*momento2  + edad + (momento2|id),data= data)
 summary(mod4, ddf = "Kenward-Roger")
 
 #si se detecta que la relación entre el barthel y la recuperación cambia con el tiempo
