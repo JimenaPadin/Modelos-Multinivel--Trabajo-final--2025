@@ -34,7 +34,7 @@ El estado físico y funcional del cuerpo humano desempeña un papel central en l
 
 En adultos mayores, lesiones de este índole afectan directamente su autonomía y capacidad para realizar actividades básicas de la vida diaria. La recuperación funcional posterior a estos eventos es un proceso complejo influido por factores individuales (edad, sexo), condiciones de vida y el tratamiento recibido, ya sea fisioterapia u opciones quirúrgicas.
 
-Debido al componente dependiente de los datos, dado a que estos resultan ser múltiples mediciones de un mismo individuo,  contar con herramientas que permitan evaluar la evolución funcional de los pacientes resulta fundamental. Medidas estandarizadas como el Índice de Barthel permiten cuantificar el nivel de independencia antes y después del traumatismo, y constituyen un insumo valioso para estudiar trayectorias de recuperación. Los modelos multinivel representan una estrategia estadística adecuada para analizar datos longitudinales, capturar variabilidad individual en los procesos de cambio y evaluar el efecto diferencial de los tratamientos, de acuerdo con los objetivos del estudio presentado en este informe.
+Debido al componente dependiente de los datos, dado a que estos resultan ser múltiples mediciones de un mismo individuo, contar con herramientas que permitan evaluar la evolución funcional de los pacientes resulta fundamental. Medidas estandarizadas como el Índice de Barthel permiten cuantificar el nivel de independencia antes y después del traumatismo, y constituyen un insumo valioso para estudiar trayectorias de recuperación. Los modelos multinivel representan una estrategia estadística adecuada para analizar datos longitudinales, capturar variabilidad individual en los procesos de cambio y evaluar el efecto diferencial de los tratamientos, de acuerdo con los objetivos del estudio presentado en este informe.
 
 # Datos
 
@@ -62,15 +62,13 @@ En cuanto al género, la proporción de mujeres en la muestra es considerablemen
 (data$tratamiento %>% table())/nrow(data)
 ```
 
-Respecto al tratamiento recibido, la elección entre tratamiento quirúrgico y fisioterapia tras una fractura de muñeca depende tanto de las características de la lesión como de las características clínicas del paciente. En general, las fracturas estables mediante inmovilización seguida de fisioterapia, mientras que la cirugía se reserva para fracturas inestables.
-En nuestra muestra, el 37% de los pacientes recibió tratamiento conservador y el 63% tratamiento quirúrgico.
+Respecto al tratamiento recibido, la elección entre tratamiento quirúrgico y fisioterapia tras una fractura de muñeca depende tanto de las características de la lesión como de las características clínicas del paciente. En general, las fracturas estables mediante inmovilización seguida de fisioterapia, mientras que la cirugía se reserva para fracturas inestables. En nuestra muestra, el 37% de los pacientes recibió tratamiento conservador y el 63% tratamiento quirúrgico.
 
 ```{r, eval=F}
 (data$domicilio %>% table())/nrow(data)
 ```
 
-Finalmente, la condición habitacional constituye un factor relevante en la recuperación funcional de adultos mayores. Vivir en el propio domicilio suele asociarse a mayor autonomía y una rutina previa más estable, lo que favorece la readquisición de habilidades motoras y funcionales. Por el contrario, residir en un hogar o institución puede reflejar una situación de mayor dependencia previa o menor movilidad, elementos que tienden a enlentecer la recuperación tras una fractura.
-En nuestros datos, el 69% de los pacientes residía en su domicilio y el 31% en instituciones, por lo que esta variable se incorpora como covariable a nivel individual para capturar diferencias en el nivel funcional previo y en el apoyo disponible durante el proceso de rehabilitación.
+Finalmente, la condición habitacional constituye un factor relevante en la recuperación funcional de adultos mayores. Vivir en el propio domicilio suele asociarse a mayor autonomía y una rutina previa más estable, lo que favorece la readquisición de habilidades motoras y funcionales. Por el contrario, residir en un hogar o institución puede reflejar una situación de mayor dependencia previa o menor movilidad, elementos que tienden a enlentecer la recuperación tras una fractura. En nuestros datos, el 69% de los pacientes residía en su domicilio y el 31% en instituciones, por lo que esta variable se incorpora como covariable a nivel individual para capturar diferencias en el nivel funcional previo y en el apoyo disponible durante el proceso de rehabilitación.
 
 ## Variables temporales
 
@@ -129,15 +127,14 @@ Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos M
 
 Para la creación de modelos se establece como variable dependiente la recuperación del paciente, `recuperacion`. Previo a crear los modelos, se realizaron algunos ajustes sobre los datos:
 
--  Dado que al utilizar `recuperacion` como variable dependiente las observaciones de momento previo carecen de interpretacion, las mismas fueron excluidas del análisis longitudinal. En su lugar se agrega una variable `b_prev` que indica el valor de índice de Barthel previo a la lesión.
+-   Dado que al utilizar `recuperacion` como variable dependiente las observaciones de momento previo carecen de interpretacion, las mismas fueron excluidas del análisis longitudinal. En su lugar se agrega una variable `b_prev` que indica el valor de índice de Barthel previo a la lesión.
 
 ```{r}
 # ya se hizo antes, en datos sobre momentos para verificar como se creaba recuperacion
 data <- data %>% filter(momento!='previo')
 ```
 
-
--  En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso y se codifica {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
+-   En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso y se codifica {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
 
 ```{r}
 data = data %>%  
@@ -149,7 +146,7 @@ data = data %>%
                               TRUE ~ NA_real_))
 ```
 
--  Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo ($edad2 = edad-60$).
+-   Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo ($edad2 = edad-60$).
 
 ```{r}
 data <- data %>% 
@@ -159,7 +156,6 @@ data <- data %>%
           sexo = as.factor(sexo),
           id = as.factor(id))
 ```
-
 
 Se procede a plantear el modelo 0 y definir la estructura de la matriz D, donde se utiliza `anova` para evaluar la significación de las constantes y pendientes aleatorias.
 
@@ -171,21 +167,7 @@ Después se establecen diferentes modelos...
 
 Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
 
-DUDAS DE LU
-
-en un modelo base: mod2 = lmer(recuperacion \~ tratamiento + edad + (momento\|id),data= data) todas las variables son significativas, se entiende que el tratamiento que se aplique si sirve para explicar la recuperación del paciente, en cambio, cuando a este modelo se le incorpora la relación entre barthel y el tiempo, el tratamiento deja de ser significativo.
-
-La idea de incluir barthel\*momento es ver si el efecto del estado funcional del adulto varía con el tiempo?Esto tiene sentido?
-
-No habría que usar tratamient\*momento? mod6 = lmer(recuperacion \~ tratamiento\*momento + barthel + edad + (momento \|id),data=data) Al hacer esto tratamiento y la interacción dan que no son significativas, es decir, el efecto del tratamiento en el tiempo sobre los individuos no cambia entre tratamientos
-
-Si se saca barthel tratamiento y la interacción pasan a ser significativa
-
-Barthel tiene que estar en el modelo?
-
-Recuperación se calcula utilizando Barthel?
-
-```{reval=F, echo=T}
+``` {reval="F," echo="T"}
 
 
 ## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
@@ -256,13 +238,10 @@ summary(mod6, ddf = "Kenward-Roger")
 data
 ```
 
+*nuevo*
 
-_nuevo_
+Modelo 0: *esto deberia ir en metodologia* $$recuperacion_{ij} = \beta_{0i} + \beta_{1i}t_{ij} + \varepsilon_{ij}$$ $$\beta_{0i}=\gamma_{00}+\eta_{0i}$$ $$\beta_{1i}=\gamma_{10}$$ *si aca se agrega la variable aleatoria eta queda con pendientes aleatorias dependientes de momentos*
 
-Modelo 0: _esto deberia ir en metodologia_
-$$recuperacion_{ij} = \beta_{0i} + \beta_{1i}t_{ij} + \varepsilon_{ij}$$
-$$\beta_{0i}=\gamma_{00}+\eta_{0i}$$
-$$\beta_{1i}=\gamma_{10}$$ _si aca se agrega la variable aleatoria eta queda con pendientes aleatorias dependientes de momentos_
 ```{r}
 mod0 <- lmer(recuperacion~ momento2 + (1|id), data = data)
 summary(mod0)
@@ -274,5 +253,67 @@ anova(mod0,mod1)
 
 \newpage
 
-# Bibliografía
+Modelo Base
 
+Se comienza un modelo base, donde hay un intercepto fijo y cada paciente tiene su propio intercepto y pendiente, dada por los diferentes momentos. Luego, se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
+
+Estos modelos presentan un incoveniente, la matriz es singular, sin embargo, al analizar la matriz D, la varianza no es 0, aunque si muy baja. De igual forma se decide mantener este modelo como base tomando en cuenta las precauciones necesarias.
+
+```{r}
+#edad y sexo efectos fijos porque no cambian dentro del mismo id
+mod0 = lmer(recuperacion ~ 1 + (momento2|id), data= data)
+summary(mod0, ddf = "Kenward-Roger")
+mod0 = lmer(recuperacion ~ sexo + edad2 + domicilio + (momento2|id), data= data)
+summary(mod0, ddf = "Kenward-Roger")
+```
+
+Del modelo anterior, se detecta que en contradicción con lo que la literatura señalaba, el genero del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
+
+Además, se incluye la variable tratamiento como efecto fijo, se decide incorporarla de esta forma y no como efecto aleatorio debido al objetivo que se planteó, se quiere identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía segun el tratamiento proporcionado.
+
+```{r}
+mod1= lmer(recuperacion ~ edad2 + tratamiento + (momento2|id),data= data)
+summary(mod1, ddf = "Kenward-Roger")
+```
+
+En un principio, pareciera que el tratamiento si presenta un efecto sobre la recuperación, sin embargo, al crear un nuevo modelo incorporando la variable barthel las interpretaciones se ven afectadas.
+
+```{r}
+mod2= lmer(recuperacion ~ barthel + edad +  tratamiento+ (momento|id),data= data)
+summary(mod2, ddf = "Kenward-Roger")
+```
+
+Al incluir el Índice del estado funcional de los individuos como efecto fijo, parte del efecto que anteriormente se le asignaba al tratamiento pasa a ser explicado por la nueva variable. Lo que sucede es una confusión, debido a que barthel y tratamiento se encuentran correlacionadas entre sí.
+
+Se detecta que dependiendo el valor de barthel del paciente, el tratamiento que se le asigna, mientras que a los pacientes que se encuentran con un valor del índice más elevados o no presentan grandes variaciones en este, (entre antes y después del traumatismo), se los trata con fisioterapia, a los pacientes que si presentan grandes daños producto del incidente se les realiza cirugia.
+
+Por lo mencionado, en un anterior modelo se observaba que la recuperación cambiaba entre tratamientos, sin embargo, esto se debía a que al ingresar al hospital, dependiendo del estado funcional del paciente, el tratamiento que se le asignaba. El nuevo modelo es capaz de diferenciar que proporción de la recuperación se debe al nivel funcional y cuál al tratamiento.
+
+Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
+
+```{r}
+mod3 <- lmer(recuperacion ~ barthel + momento + tratamiento +
+                            momento:tratamiento +
+                            edad + (momento | id),
+             data = data)
+summary(mod3, ddf = "Kenward-Roger")
+```
+
+Se permite intepretar que la evolución de la recuperación de los pacientes no cambia segun el tratamiento, sin embargo, si se incorpora como efecto fijo la interacción entre barthel y momentos se puede identificar que el índice si influye en la evolución de la variable de interés.
+
+```{r}
+#peeero:
+
+#MODELO FINAL)?
+mod4= lmer(recuperacion ~ barthel*momento  + edad + (momento|id),data= data)
+summary(mod4, ddf = "Kenward-Roger")
+
+#si se detecta que la relación entre el barthel y la recuperación cambia con el tiempo
+
+
+#PROBLEMA: HAY MUCHOS BOUNDARY, NO SE VAN CON NADA :(
+```
+
+Se llegó a un modelo final, el cual permite cumplir con los objetivos planteados, sin embargo, se abre espacio a mejorar el presentado modelo, debido a que problemas como el de la matriz singular persisten.
+
+# Bibliografía
