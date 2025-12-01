@@ -91,16 +91,16 @@ Para estos momentos se releva la variable `barthel`.
 
 Como se establece por @mahoney1965barthel, el índice de Barthel es un índice simple de independencia para evaluar la capacidad de un paciente con un trastorno neuro-muscular o musculo-esquelético para cuidar de sí mismo. Los valores asignados a cada ítem se basan en el tiempo y la cantidad de asistencia física real requerida si un paciente no puede realizar la actividad.
 
-```{r plot1, warning=F, caption = 'Boxplot del índice de Barthel para diferentes momentos en relación a la lesión.'}
+```{r plot1, warning=F, caption = 'Boxplot del índice de Barthel para diferentes momentos en relación a la lesión.', fig.height=3.5}
 data %>% ggplot()+
    geom_boxplot(aes(x=momento, y=barthel, fill=momento))+
    theme(legend.position = 'none')+
    theme_bw()+scale_fill_viridis_d()
 ```
 
-En la Figura @ref{plot1} se muestra la distribución del Índice de Barthel en cada uno de los momentos de medición, con el objetivo de obtener una primera impresión de la evolución funcional de los pacientes. Se observa que, antes de la lesión, los individuos presentan niveles elevados de independencia funcional, en general por encima de 75 puntos. Tras el ingreso hospitalario, el puntaje disminuye de forma marcada, reflejando el estado físico asociado al evento. A partir del primer mes, los valores comienzan a incrementarse nuevamente, acompañando el proceso de recuperación. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
+En la Figura @plot1 se muestra la distribución del Índice de Barthel en cada uno de los momentos de medición, con el objetivo de obtener una primera impresión de la evolución funcional de los pacientes. Se observa que, antes de la lesión, los individuos presentan niveles elevados de independencia funcional, en general por encima de 75 puntos. Tras el ingreso hospitalario, el puntaje disminuye de forma marcada, reflejando el estado físico asociado al evento. A partir del primer mes, los valores comienzan a incrementarse nuevamente, acompañando el proceso de recuperación. Entre el mes y dos años del incidente, la varianza del estado físico de los pacientes aumenta bastante, en comparación con los dos momentos del tiempo anteriores.
 
-```{r} 
+```{r}
 b_prev <- data %>% filter(momento=='previo') %>% 
    mutate(b_prev = barthel) %>% select(id,b_prev) %>% unique()
 b_ini <- data %>% filter(momento=='ingreso') %>% 
@@ -110,7 +110,7 @@ data <- data %>% left_join(b_prev, by='id')%>% left_join(b_ini, by='id')
 
 Por ultimo, la variable `recuperacion`, definida como $recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}$, se encuentra disponible para todos los momentos de medición excepto para el momento previo a la lesión dado que la expresión carece de interpretación clínica.
 
-```{r, caption='Trayectorias individuales de recuperación funcional para una muestra de pacientes seleccionados.'}
+```{r,fig.height=3.5, caption='Trayectorias individuales de recuperación funcional para una muestra de pacientes seleccionados.'}
 data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    geom_line(aes(x=momento, y=recuperacion, group = factor(id),
                  color=factor(id)))+
@@ -118,7 +118,8 @@ data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    theme_bw()+
    scale_color_viridis_d()
 ```
-Veamos la variablidad de edades para esta muestra mediante un histograma, vemos que la mayoria de las personas que ingresaron al tratamiento tienen entre  80 y 90 años 
+
+Veamos la variabilidad de edades para esta muestra mediante un histograma, vemos que la mayoría de las personas que ingresaron al tratamiento tienen entre  80 y 90 años.
 
 ```{r}
 data_id <- data %>% 
@@ -126,16 +127,17 @@ data_id <- data %>%
 
 ggplot(data_id, aes(x = edad)) +
   geom_histogram(bins = 15, fill = "steelblue", color = "black") 
-
-
 ```
-
-
+ 
+ _comentario?_
+ 
 # Metodología
 
 Al trabajar con medidas repetidas, hay varios modelos posibles, entre ellos el RM – ANOVA, el cual es una adaptación del modelo ANOVA para medidas repetidas. Este no es el que se utilizó para el presente análisis, ya que supone que los datos deben estar balanceados, y como se mencionó anteriormente, en los datos disponibles esto no sucede.
 
 Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos Mixtos (LME), debido a que es mucho más flexible con respecto a los supuestos y presenta varias ventajas con respecto al modelo anterior.
+
+## Descripción de las variables 
 
 Para la creación de modelos se establece como variable dependiente la recuperación del paciente, `recuperacion`. Previo a crear los modelos, se realizaron algunos ajustes sobre los datos:
 
@@ -146,9 +148,7 @@ Para la creación de modelos se establece como variable dependiente la recuperac
 data <- data %>% filter(momento!='previo')
 ```
 
--   En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso, la metrica temporal que de la forma:  {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
-
-
+-   En consecuencia a lo anterior, definir el instante ingreso como momento 0 produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Es por ello que la variable `momentos2` toma de referncia el primer mes posterior al ingreso y se codifica {-1, 0, 2, 11, 23} para los momentos de ingreso, 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
 
 ```{r}
 data = data %>%  
@@ -158,9 +158,6 @@ data = data %>%
                               momento == "12 meses" ~ 11,
                               momento == "24 meses" ~ 23,
                               TRUE ~ NA_real_))
-
-
-
 ```
 
 -   Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo ($edad2 = edad-60$).
@@ -172,13 +169,11 @@ data <- data %>%
           domicilio = as.factor(domicilio),
           sexo = as.factor(sexo),
           id = as.factor(id))
-
-
 ```
 
-Se procede a plantear el modelo 0 y definir la estructura de la matriz D, donde se utiliza `anova` para evaluar la significación de las constantes y pendientes aleatorias.
+Por lo que las variables a seleccionar son:
 
-## Descripción de las variables 
+_esta raro, capaz va a en otro lado, tipo armarlo si como tabla despues de las correlaciones_
 
 - **Recuperación**: Variable dependiente 
 
@@ -194,8 +189,7 @@ Se procede a plantear el modelo 0 y definir la estructura de la matriz D, donde 
 
 - **Sexo**
 
-
-## Variables creadas 
+Variables creadas:
 
 - **momento2** : variable que toma como referencia el primer mes luego del ingreso, la metrica temporal queda definida como: $\{-1, 0, 2, 11, 23\}$, es una variable de nivel 1 ya que esta variable cambia en el tiempo.
 
@@ -218,95 +212,71 @@ data |>
 
 ```
 
+# Modelado
 
+Se comienza por discernir la estructura apropiada de la matriz $\pmb D$. Bajo la hipótesis, se asume que ningún efecto aleatorio $k$ tiene un aporte significativo al modelo (modelo lineal):
 
+\begin{equation}
+H_0) \; \pmb D_i = 
+\begin{bmatrix}
+\pmb D_{q\times q} & \pmb 0_{q\times k}\\
+\pmb 0_{k\times q} & \pmb 0_{k\times k}
+\end{bmatrix}
+\end{equation}
 
-
-
-
-
+A partir de los modelos ajustados con `lmer(REML = FALSE)`, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
+ 
 Después se establecen diferentes modelos...
+
+
+_Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados._
 
 # Resultados
 
-## Posibles modelos
+## Estructura de la matriz $\pmb D$
 
-Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
-
-``` {reval="F," echo="T"}
-
-
-## empezamos con el modelo mas basico y le vamos agregando variables hasta llegar al modelo completo  
-mod0 = lm(barthel ~ 1 ,data = data ) ## modelo lineal 
-## modelo con efecto aleatorio en la cte 
-
-#al condicionar por id, se trabaja con que la unidad es el nivel 2 y las mediciones nivel 1, es decir, tenemos tantos grupos com individuos
-mod1 = lmer(barthel ~  edad  + (1|id), data = data , REML = FALSE) 
-
-library(lmerTest)
-#usando como recuperacion como variable dependiente
-mod2 = lmer(recuperacion ~ tratamiento + edad + (momento|id),data= data) ## incluyo  efectos aleatorios,  en la constante y el la pendiente
-summary(mod2, ddf = "Kenward-Roger")
-
-
-
-mod3 = lmer(recuperacion ~ barthel*momento  + edad +  (momento|id),data= data) # interseccion barthel con momento 
-summary(mod3, ddf = "Kenward-Roger")
-
-
-#al incluir la interacción entre barthel y momento, la variable tratamiento deja de ser significativa
- mod4 = lmer(recuperacion ~ barthel*momento  +  tratamiento + edad  + (momento|id),data=data) ## boundary !!
-
-summary(mod4, ddf = "Kenward-Roger")
-
-
-
-
-L0 <- logLik(mod0)
-L1 = logLik(mod1)
-L2= logLik(mod2)
-L3 = logLik(mod3)
-
-LRT <- -2*(L0 - L1)
-LRT2  = -2*(L1-L2)
-LRT3  = -2*(L2-L3)
-
-alfa <- 0.05
-anova(mod0,mod1)
-anova(mod2, mod1)
-
-
-qchisq(1 - 2*alfa, 1)
-# p-valor
-0.5*pchisq(LRT, 1, lower.tail = FALSE)
-## agregar un efecto  aleatorio tiene un aporte significativo 
-
-pchisq(LRT,c(1,2),lower.tail = FALSE) %>%  mean()
-
-anova(mod1,mod2)
-anova(mod2,mod3)
-
-
-#otros modelo
-
-mod5 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + sexo + (momento |id),data=data) 
-summary(mod5, ddf = "Kenward-Roger")
-#el sexo no me da significativo
-
-mod6 = lmer(recuperacion ~ tratamiento*momento  +  barthel + edad + (momento |id),data=data) 
-summary(mod6, ddf = "Kenward-Roger")
-#el tratamiento no explica nada
-
-#si se saca barthel tratamiento pasa a ser significativo
-mod6 = lmer(recuperacion ~ tratamiento*momento + edad + (momento |id),data=data) 
-summary(mod6, ddf = "Kenward-Roger")
-
-data
+```{r, echo=T}
+mod0 <- lm(recuperacion ~ 1, data=data)
+mod1 <- lmer(recuperacion ~ 1 + (1|id), data=data, REML=F)
+mod2 <- lmer(recuperacion ~ 1 + (momento2|id), data=data, REML=F)
 ```
 
-*nuevo*
+```{r, echo=T}
+L0 <- logLik(mod0)
+L1 <- logLik(mod1)
+LRT <- -2*(L0 - L1)
+0.5*pchisq(LRT, 1, lower.tail = FALSE)
+```
 
-Modelo 0: *esto deberia ir en metodologia* $$recuperacion_{ij} = \beta_{0i} + \beta_{1i}t_{ij} + \varepsilon_{ij}$$ $$\beta_{0i}=\gamma_{00}+\eta_{0i}$$ $$\beta_{1i}=\gamma_{10}$$ *si aca se agrega la variable aleatoria eta queda con pendientes aleatorias dependientes de momentos*
+El p-valor obtenido para evaluar la inclusión de contantes aleatorias indica que dichos efectos son estadísticamente significativos.
+
+```{r, echo=T}
+L2 <- logLik(mod2)
+LRT <- -2*(L1 - L2)
+pchisq(LRT,c(1,2),lower.tail = FALSE) |> mean()
+```
+
+Si bien la prueba sugiere que el modelo con pendiente aleatoria mejora el ajuste, el ajuste del modelo más complejo presenta un problema de _boundary (singular) fit_.
+
+Esto se refleja en una varianza estimada de la pendiente aleatoria prácticamente nula y una correlación entre intercepto y pendiente igual a 1.00.
+
+Bajo estas condiciones, el modelo con pendiente aleatoria no es identificable y los valores del log-likelihood utilizados en el LRT no son confiables.
+
+Bajo esta problematica se evaluan los siguientes dos modelos, solo constantes aleatorias y solo pendientes aleatorias, de forma de ver que inclusion de la variable momentos2 es mas significativa:
+
+```{r}
+mod3 <- lmer(recuperacion ~ momento2 + (1|id), data=data, REML=F)
+mod4 <- lmer(recuperacion ~ 1 + (0+momento2|id), data=data, REML=F)
+anova(mod3,mod4)
+```
+
+En función de las pruebas realizadas y del problema de singularidad observado al intentar estimar pendientes aleatorias, se adopta como estructura aleatoria final un modelo con intercepto aleatorio y pendiente fija para `momento2`. El modelo jerárquico resultante es:
+
+$$recuperacion_{ij} = \beta_{0i} + \beta_{1i}momento2_{ij} + \varepsilon_{ij}$$
+$$\beta_{0i}=\gamma_{00}+\eta_{0i}$$
+$$\beta_{1i}=\gamma_{10}$$
+
+En el Anexo X se muestra que agregar otras variables como pendientes aleatorias no aporta mejoras significativas al modelo.
 
 $$R_{ij} = \beta_{0i} +\beta_{1i}momento2_{ij} + \epsilon_{ij} \rightarrow \ ecuación\  de\  nivel\ 1$$ 
 donde:
@@ -318,30 +288,22 @@ La interpretación del $gamma_{00}$ seria la recuperación media de la població
 
 $$\beta_{1i}=\gamma_{10} \ ecuación \ de \ nivel\ 2 $$
 
-
-```{r}
-mod0 <- lmer(recuperacion~ momento2 + (1|id), data = data)
-summary(mod0)
-
-mod1 <- lmer(recuperacion~ momento2 + (momento2|id), data = data)
-
-anova(mod0,mod1)
+```{r, echo=T}
+mod0 <- lmer(recuperacion ~ momento2 + (1|id), data=data)
+summary(mod0, ddf = "Kenward-Roger")
 ```
 
-\newpage
+_explicar algo?_
 
-Modelo Base
+
+## Inclusión de covariables al modelado
 
 Se comienza un modelo base, donde hay un intercepto fijo y cada paciente tiene su propio intercepto y pendiente, dada por los diferentes momentos. Luego, se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
 
-Estos modelos presentan un incoveniente, la matriz es singular, sin embargo, al analizar la matriz D, la varianza no es 0, aunque si muy baja. De igual forma se decide mantener este modelo como base tomando en cuenta las precauciones necesarias.
-
 ```{r}
-#edad y sexo efectos fijos porque no cambian dentro del mismo id
-mod0 = lmer(recuperacion ~ 1 + (momento2|id), data= data)
-summary(mod0, ddf = "Kenward-Roger")
-mod0 = lmer(recuperacion ~ sexo + edad2 + domicilio + (momento2|id), data= data)
-summary(mod0, ddf = "Kenward-Roger")
+mod1 = lmer(recuperacion ~ momento2 + sexo + edad2 + domicilio + (1|id), data= data)
+anova(mod0,mod1) # se acepta el modelo nuevo
+summary(mod1, ddf = "Kenward-Roger")
 ```
 
 Del modelo anterior, se detecta que en contradicción con lo que la literatura señalaba, el genero del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
@@ -349,16 +311,24 @@ Del modelo anterior, se detecta que en contradicción con lo que la literatura s
 Además, se incluye la variable tratamiento como efecto fijo, se decide incorporarla de esta forma y no como efecto aleatorio debido al objetivo que se planteó, se quiere identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía segun el tratamiento proporcionado.
 
 ```{r}
-mod1= lmer(recuperacion ~ edad2 + tratamiento + (momento2|id),data= data)
-summary(mod1, ddf = "Kenward-Roger")
+mod2= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + (1|id),data= data) #sacamos sexo y agregamos tratamineto, comparamos con mod0
+anova(mod0,mod2) #aceptamos el nuevo modelo
+summary(mod2, ddf = "Kenward-Roger")
 ```
+
+_todo relevante_
 
 En un principio, pareciera que el tratamiento si presenta un efecto sobre la recuperación, sin embargo, al crear un nuevo modelo incorporando la variable barthel las interpretaciones se ven afectadas.
 
-```{r}
-mod2= lmer(recuperacion ~ barthel + edad +  tratamiento+ (momento2|id),data= data)
-summary(mod2, ddf = "Kenward-Roger")
+```{r,eval=F, echo=T}
+mod3= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + barthel + (1|id),data= data)
+anova(mod2,mod3) #se acepta el nuevo modelo
+summary(mod3, ddf = "Kenward-Roger")
 ```
+
+_tratamiento pierde relevancia, momento2 y domicilio son menos significativos_
+
+_como barthel es de nivel 2 no convendría agregarla solo como interaccion?_
 
 Al incluir el Índice del estado funcional de los individuos como efecto fijo, parte del efecto que anteriormente se le asignaba al tratamiento pasa a ser explicado por la nueva variable. Lo que sucede es una confusión, debido a que barthel y tratamiento se encuentran correlacionadas entre sí.
 
@@ -368,21 +338,41 @@ Por lo mencionado, en un anterior modelo se observaba que la recuperación cambi
 
 Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
 
+
+### Interacciones
+
+```{r,eval=F, echo=T}
+mod4= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + barthel*momento2 + (1|id),data= data)
+mod5= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + barthel*momento2 + barthel + (1|id),data= data)
+anova(mod4,mod5) #evaluo si es mejor barthel solo como inetarccion o ambas, SON LO MISMO?
+```
+
 ```{r}
-mod3 <- lmer(recuperacion ~ barthel + momento2 + tratamiento +
-                            momento2:tratamiento +
-                            edad + (momento2 | id),
+mod4= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + barthel*momento2 + (1|id),data= data)
+anova(mod3,mod4)
+```
+
+
+barthel*momento
+tratamiento*momento
+
+_anterior de luciana que no movi todavia_
+
+```{r,eval=F, echo=T}
+mod3 <- lmer(recuperacion ~ barthel + momento + tratamiento +
+                            momento:tratamiento +
+                            edad + (momento | id),
              data = data)
 summary(mod3, ddf = "Kenward-Roger")
 ```
 
 Se permite intepretar que la evolución de la recuperación de los pacientes no cambia segun el tratamiento, sin embargo, si se incorpora como efecto fijo la interacción entre barthel y momentos se puede identificar que el índice si influye en la evolución de la variable de interés.
 
-```{r}
+```{r,eval=F, echo=T}
 #peeero:
 
 #MODELO FINAL)?
-mod4= lmer(recuperacion ~ barthel*momento2  + edad + (1|id),data= data)
+mod4= lmer(recuperacion ~ barthel*momento  + edad + (momento|id),data= data)
 summary(mod4, ddf = "Kenward-Roger")
 
 #si se detecta que la relación entre el barthel y la recuperación cambia con el tiempo
@@ -394,6 +384,9 @@ summary(mod4, ddf = "Kenward-Roger")
 $$R_{ij} = \beta_{0i} + (\beta_{1i}Tratamiento_{ij})*(Momento2_{ij}) + \beta_{2i}edad_{ij} + \epsilon_{ij}$$
 $$\beta_{0i} = \gamma_{00} +\eta_{0i}$$
 $$\beta_{1i} = \gamma_{10} +\eta_{1i}$$
+
 Se llegó a un modelo final, el cual permite cumplir con los objetivos planteados, sin embargo, se abre espacio a mejorar el presentado modelo, debido a que problemas como el de la matriz singular persisten.
+
+\newpage
 
 # Bibliografía
