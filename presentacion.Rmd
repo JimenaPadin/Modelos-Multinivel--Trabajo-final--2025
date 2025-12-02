@@ -1,45 +1,120 @@
-<!DOCTYPE html>
-<html lang="" xml:lang="">
-  <head>
-    <title>Trabajo final</title>
-    <meta charset="utf-8" />
-    <meta name="author" content="Matías Bajac y Jimena Padín Luciana Viscailuz" />
-    <script src="libs/header-attrs/header-attrs.js"></script>
-    <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
-    <script src="libs/tile-view/tile-view.js"></script>
-    <link href="libs/panelset/panelset.css" rel="stylesheet" />
-    <script src="libs/panelset/panelset.js"></script>
-    <link href="libs/xaringanExtra-banner/banner.css" rel="stylesheet" />
-    <script src="libs/xaringanExtra-banner/banner.js"></script>
-    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
-    <link rel="stylesheet" href="custom.css" type="text/css" />
-  </head>
-  <body>
-    <textarea id="source">
-class: center, middle, inverse, title-slide
-
-.title[
-# Trabajo final
-]
-.subtitle[
-## Introducción a los Modelos Multinivel 2025
-]
-.author[
-### Matías Bajac y Jimena Padín Luciana Viscailuz
-]
-.date[
-### 27 de Noviembre 2025
-]
+---
+title : Trabajo final
+subtitle : Introducción a los Modelos Multinivel 2025
+author : Matías Bajac y Jimena Padín Luciana Viscailuz
+date : 27 de Noviembre 2025
+output : 
+  xaringan::moon_reader:
+   css : ["xaringan-themer.css","custom.css"]   
+   lib_dir : libs
+   includes:
+   nature :
+     ratio : "16:9"
+     highlightStyle: github
+     slideNumberFormat: '%current%'
+     highlightLines: true
+     countIncrementalSlides: false
 
 ---
 
+```{r setup, include = F , warning = F }
+if(!require(pacman)) {
+  install.packages("pacman")
+}
+
+library(xaringanthemer)
+
+
+pacman::p_load(
+  RefManageR
+)
+
+#Libreria car 
+pacman::p_load_gh(
+  "gadenbuie/xaringanExtra"
+)
+# Configuración del tema Xaringan:
+style_duo_accent(
+  primary_color = "#010788",
+  secondary_color = "#01B5FE",
+  header_font_google = google_font("Titillium Web", "600"),
+   text_font_google   = google_font("Crimson Pro", "300", "300i"),
+   code_font_google   = google_font("IBM Plex Mono"),
+   base_font_size = "20px",
+   text_font_size = "1rem",
+   code_font_size = "0.6rem",
+   code_inline_font_size = "1.2em",
+   footnote_font_size = "0.6em",
+   header_h1_font_size = "1.7rem",
+   header_h2_font_size = "1.50rem",
+   header_h3_font_size = "1.2rem"
+)
+
+xaringanExtra::use_xaringan_extra(
+  c(
+    "tile_view",
+    "panelset",
+    "progress_bar"
+  )
+)
+
+
+xaringanExtra::style_panelset_tabs(
+  active_foreground = "#0051BA",
+  hover_foreground = "#d22",
+  font_family = "Roboto"
+)
+
+xaringanExtra::use_banner(
+  bottom_left = "bit.ly/my-awesome-talk",
+  exclude = "title-slide"
+)
+
+xaringanExtra::style_banner(
+  text_color = "#1874CD",
+  background_color = "#F0F8FF"
+)
+
+
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(
+  warning = F, 
+  echo = F ,
+  out.width = "450px",
+  dpi = 200, 
+  fig.retina =2
+)
+
+
+if(!require(pacman)) {
+  install.packages("pacman")
+}
 
 
 
 
+options(kableExtra.latex.load_packages = FALSE)
+
+
+```
 
 
 
+
+```{r,include=F}
+library(readxl)
+library(tidyverse)
+library(rstatix)# para hacer ANOVA RM
+library(GGally)
+library(lme4)
+library(lmerTest) #para incluir los p valores
+library(kableExtra)
+library(performance)
+library(knitr)
+
+
+
+```
 
 
 class: header_background
@@ -110,7 +185,7 @@ class: header_background
 class: header_background
 #Análisis exploratorio 
 
-Se puede observar la alta correlacion entre Barthel y la recuperación en cada momento del tiempo, esto tiene sentido debido a como se define la variable recuperación `\(recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}\)`
+Se puede observar la alta correlacion entre Barthel y la recuperación en cada momento del tiempo, esto tiene sentido debido a como se define la variable recuperación $recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}$
 .center[
 ![](barthel.png)
 ]
@@ -123,7 +198,7 @@ A continuación, se presenta un segundo gráfico con la evolución en el tiempo 
 
 Se puede observar que las pendientes de las trayectorias difieren, y que, además, hay algunas más largas que otras, indicando que hay pacientes a los que no se les realizó un seguimiento continuo en el tiempo o que abandonaron el tratamiento.
 
-&lt;img src="pendientes.png" width="55%"&gt;
+<img src="pendientes.png" width="55%">
 
 ---
 
@@ -143,20 +218,20 @@ Al trabajar con medidas repetidas, hay varios modelos posibles, entre ellos el R
 
 Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos Mixtos (LME), debido a que es mucho más flexible con respecto a los supuestos y presenta varias ventajas con respecto al modelo anterior.
 
-Dado al tipo de datos, se identifica a los individuos y sus variables como el nivel 2 `\((i)\)`, mientras que las observaciones para cada individuo son de nivel 1 `\((t)\)`.
+Dado al tipo de datos, se identifica a los individuos y sus variables como el nivel 2 $(i)$, mientras que las observaciones para cada individuo son de nivel 1 $(t)$.
 
 ---
 class: header_background
 
 # Modelos 
 
-Se comienza por discernir la estructura apropiada de la matriz `\(\pmb D\)`. Bajo la hipótesis nula, se asume que ningún efecto aleatorio `\(k\)` tiene un aporte significativo al modelo (modelo lineal)
+Se comienza por discernir la estructura apropiada de la matriz $\pmb D$. Bajo la hipótesis nula, se asume que ningún efecto aleatorio $k$ tiene un aporte significativo al modelo (modelo lineal)
 
 ![](matrizD.png)
 
 A partir de los modelos ajustados con `lmer(REML = FALSE)`, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
 
-Una vez establecida la estructura de `\(\pmb D\)`, se crearon diversos modelos LME utilizando la función `lmer(`) del paquete `lme4`, además se aplicó la corrección de los grados de libertad de Kenward-Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
+Una vez establecida la estructura de $\pmb D$, se crearon diversos modelos LME utilizando la función `lmer(`) del paquete `lme4`, además se aplicó la corrección de los grados de libertad de Kenward-Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
 
 ---
 
@@ -174,19 +249,19 @@ class: header_background
 
 Ajustamos tres modelos:
 
- Modelo 0 : `\(Recuperacion_{it} = \beta_{0} + \epsilon_{it}\)`
+ Modelo 0 : $Recuperacion_{it} = \beta_{0} + \epsilon_{it}$
  
- Modelo 1: `\(Recuperación_{it} =  \beta_{0i} + \epsilon_{it}\)`
+ Modelo 1: $Recuperación_{it} =  \beta_{0i} + \epsilon_{it}$
  
- con `\(\beta_{oi} = \gamma_{00} + \eta_{0i}\)`
+ con $\beta_{oi} = \gamma_{00} + \eta_{0i}$
 
 
 
 Dado el resultado del test se adopta como estructura aleatoria final un modelo con constantes y pendientes aleatorias. El modelo jerárquico resultante es
 
-Modelo 2: `\(Recuperacion_{it} = \beta_{oi} + \beta_{1i}momentos_{it} + \epsilon_{it}\)`
+Modelo 2: $Recuperacion_{it} = \beta_{oi} + \beta_{1i}momentos_{it} + \epsilon_{it}$
 
- con `\(\beta_{oi} = \gamma_{00} + \eta_{0i} ,\  \beta_{1i} = \gamma_{10} + \eta_{1i} \qquad i=1,2,...,327\quad t=0,2,11,23\)` 
+ con $\beta_{oi} = \gamma_{00} + \eta_{0i} ,\  \beta_{1i} = \gamma_{10} + \eta_{1i} \qquad i=1,2,...,327\quad t=0,2,11,23$ 
 ---
 
 class: header_background
@@ -199,7 +274,7 @@ para ello nos valemos del test de razon de verosimilitud
 
 Hacemos la prueba de hipotesis 
 
-`\(H_0: \gamma_{10} = 0 \ vs \ H_1 \gamma_{10} \neq 0\)`
+$H_0: \gamma_{10} = 0 \ vs \ H_1 \gamma_{10} \neq 0$
 
 El p valor del test dio  0.1245 por lo que no rechazamos la hipotesis nula, es decir no hay suficiente evidencia para decir que el efecto fijo de momentos aporte información adicional. 
 
@@ -211,7 +286,7 @@ class: header_background
 
 Se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
 
-Primero se agrega como variable fija el sexo, y se hace el test de verosimilitud con el modelo base (pendiente e intercepto aleatorio), dando un p valor &gt; al 0.05, por lo cual no incluimos esta variable en el modelo.
+Primero se agrega como variable fija el sexo, y se hace el test de verosimilitud con el modelo base (pendiente e intercepto aleatorio), dando un p valor > al 0.05, por lo cual no incluimos esta variable en el modelo.
 
 Luego, ajustamos un modelo con edad como variable fija, y lo comparamos con nuestro modelo base, llegando a que esta covariable es significativa. 
 
@@ -244,30 +319,30 @@ class: header_background
 
 Dado las variables del modelo final, la formula jerárquica toma la siguiente forma:
 
-`$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=0,2,11,23$$`
-`$$\beta_{0i}=\gamma_{00}+\gamma_{01}edad2_{i}+\gamma_{02}domicilio_{i}+\gamma_{03}tratamiento_i + \gamma_{04}b\_ing_i + \eta_{0i}$$`
-`$$\beta_{1i}=\gamma_{10}+\eta_{1i}$$`
+$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=0,2,11,23$$
+$$\beta_{0i}=\gamma_{00}+\gamma_{01}edad2_{i}+\gamma_{02}domicilio_{i}+\gamma_{03}tratamiento_i + \gamma_{04}b\_ing_i + \eta_{0i}$$
+$$\beta_{1i}=\gamma_{10}+\eta_{1i}$$
 ---
 class: header_background
 
 #Modelo Final 
 
--  `\(\gamma_{00}\)` representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
+-  $\gamma_{00}$ representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
 
-- `\(\gamma{10}\)` es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
+- $\gamma{10}$ es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
 
 --- 
 class: header_background
 
 # Estimaciones 
 
--  `\(\gamma_{00}=0.66\)` indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
+-  $\gamma_{00}=0.66$ indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
 
-- `\(\gamma_{01}=-0.006\)` indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
+- $\gamma_{01}=-0.006$ indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
 
-- `\(\gamma_{02}=0.12\)` indica que, si el individuo reside en domicilio propio, la recuperación global aumenta 0,12, tal como indica la literatura.
+- $\gamma_{02}=0.12$ indica que, si el individuo reside en domicilio propio, la recuperación global aumenta 0,12, tal como indica la literatura.
 
--  `\(\gamma{03}=0.17\)` indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
+-  $\gamma{03}=0.17$ indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
 
 ---
 
@@ -275,13 +350,13 @@ class: header_background
 
 # Estimaciones 
 
--  `\(\gamma_{04}=0.004\)` indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es mas fácil recuperarse.
+-  $\gamma_{04}=0.004$ indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es mas fácil recuperarse.
 
--  Para `\(\eta_{0i}\)`, la varianza se estima en `\(0.0562246\)`, lo cual representa la variabilidad entre sujetos en el intercepto del modelo. Es decir, indica cuánto difieren entre sí los niveles iniciales de recuperación funcional (cuando todas las covariables están centradas) entre los diferentes individuos.
+-  Para $\eta_{0i}$, la varianza se estima en $0.0562246$, lo cual representa la variabilidad entre sujetos en el intercepto del modelo. Es decir, indica cuánto difieren entre sí los niveles iniciales de recuperación funcional (cuando todas las covariables están centradas) entre los diferentes individuos.
 
--  Para `\(\eta_{1i}\)`, la varianza se estima en `\(0.0002257\)`, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja. En términos prácticos, esto implica que la evolución temporal de la recuperación funcional es muy similar entre individuos, y el modelo no detecta diferencias sustanciales en las tasas de cambio.
+-  Para $\eta_{1i}$, la varianza se estima en $0.0002257$, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja. En términos prácticos, esto implica que la evolución temporal de la recuperación funcional es muy similar entre individuos, y el modelo no detecta diferencias sustanciales en las tasas de cambio.
 
--  Para `\(\varepsilon_{it}\)`, la varianza se estima en `\(0.0946870\)`, lo cual representa la variabilidad individualmente no explicada por el modelo, es decir, las diferencias residuales en la recuperación de un mismo individuo a lo largo del tiempo, luego de controlar por los efectos fijos y aleatorios.
+-  Para $\varepsilon_{it}$, la varianza se estima en $0.0946870$, lo cual representa la variabilidad individualmente no explicada por el modelo, es decir, las diferencias residuales en la recuperación de un mismo individuo a lo largo del tiempo, luego de controlar por los efectos fijos y aleatorios.
 
 ---    
  
@@ -289,141 +364,3 @@ class: header_background
  
      
 
-    </textarea>
-<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
-<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
-<script>var slideshow = remark.create({
-"ratio": "16:9",
-"highlightStyle": "github",
-"slideNumberFormat": "%current%",
-"highlightLines": true,
-"countIncrementalSlides": false
-});
-if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
-  window.dispatchEvent(new Event('resize'));
-});
-(function(d) {
-  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
-  if (!r) return;
-  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
-  d.head.appendChild(s);
-})(document);
-
-(function(d) {
-  var el = d.getElementsByClassName("remark-slides-area");
-  if (!el) return;
-  var slide, slides = slideshow.getSlides(), els = el[0].children;
-  for (var i = 1; i < slides.length; i++) {
-    slide = slides[i];
-    if (slide.properties.continued === "true" || slide.properties.count === "false") {
-      els[i - 1].className += ' has-continuation';
-    }
-  }
-  var s = d.createElement("style");
-  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
-  d.head.appendChild(s);
-})(document);
-// delete the temporary CSS (for displaying all slides initially) when the user
-// starts to view slides
-(function() {
-  var deleted = false;
-  slideshow.on('beforeShowSlide', function(slide) {
-    if (deleted) return;
-    var sheets = document.styleSheets, node;
-    for (var i = 0; i < sheets.length; i++) {
-      node = sheets[i].ownerNode;
-      if (node.dataset["target"] !== "print-only") continue;
-      node.parentNode.removeChild(node);
-    }
-    deleted = true;
-  });
-})();
-// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
-// screen reader (see PR #262)
-(function(d) {
-  let res = {};
-  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
-    const t = tr.querySelector('td:nth-child(2)').innerText;
-    tr.querySelectorAll('td:first-child .key').forEach(key => {
-      const k = key.innerText;
-      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
-    });
-  });
-  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
-})(document);
-(function() {
-  "use strict"
-  // Replace <script> tags in slides area to make them executable
-  var scripts = document.querySelectorAll(
-    '.remark-slides-area .remark-slide-container script'
-  );
-  if (!scripts.length) return;
-  for (var i = 0; i < scripts.length; i++) {
-    var s = document.createElement('script');
-    var code = document.createTextNode(scripts[i].textContent);
-    s.appendChild(code);
-    var scriptAttrs = scripts[i].attributes;
-    for (var j = 0; j < scriptAttrs.length; j++) {
-      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
-    }
-    scripts[i].parentElement.replaceChild(s, scripts[i]);
-  }
-})();
-(function() {
-  var links = document.getElementsByTagName('a');
-  for (var i = 0; i < links.length; i++) {
-    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
-      links[i].target = '_blank';
-    }
-  }
-})();
-// adds .remark-code-has-line-highlighted class to <pre> parent elements
-// of code chunks containing highlighted lines with class .remark-code-line-highlighted
-(function(d) {
-  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
-  const preParents = [];
-  const findPreParent = function(line, p = 0) {
-    if (p > 1) return null; // traverse up no further than grandparent
-    const el = line.parentElement;
-    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
-  };
-
-  for (let line of hlines) {
-    let pre = findPreParent(line);
-    if (pre && !preParents.includes(pre)) preParents.push(pre);
-  }
-  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
-})(document);</script>
-
-<script>
-slideshow._releaseMath = function(el) {
-  var i, text, code, codes = el.getElementsByTagName('code');
-  for (i = 0; i < codes.length;) {
-    code = codes[i];
-    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
-      text = code.textContent;
-      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
-          /^\$\$(.|\s)+\$\$$/.test(text) ||
-          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
-        code.outerHTML = code.innerHTML;  // remove <code></code>
-        continue;
-      }
-    }
-    i++;
-  }
-};
-slideshow._releaseMath(document);
-</script>
-<!-- dynamically load mathjax for compatibility with self-contained -->
-<script>
-(function () {
-  var script = document.createElement('script');
-  script.type = 'text/javascript';
-  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
-  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
-    script.src  = script.src.replace(/^https?:/, '');
-  document.getElementsByTagName('head')[0].appendChild(script);
-})();
-</script>
-  </body>
-</html>
