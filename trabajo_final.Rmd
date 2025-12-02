@@ -184,11 +184,23 @@ Por lo que las variables a seleccionar son:
 
 *esta raro, capaz va a en otro lado, tipo armarlo si como tabla despues de las correlaciones*
 
+```{r}
+
+data_frame("Variable"=c("Recuperación", "Tratamiento", "domicilio", "sexo", "momento2", "edad2", "b_ini", "b_prev"), 
+           "Interpretación"=c("Variable dependiente", "Variable categórica que indica el típo de tratamiento que es sometido el paciente luego de la lesión, esta es una variable de nivel 2 ya que este no cambia en el tiempo.",  "Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una variable de nivel 1.", "", "variable que toma como referencia el primer mes luego del ingreso, la metrica temporal queda definida como: [-1, 0, 2, 11, 23], es una variable de nivel 1 ya que esta variable cambia en el tiempo.", "variable de edad de los individuos a la hora del ingreso , centrada en 60 años.", "Indice de Barthel al ingreso al hospital.", "Indice de Barthel previo a la lesion.")) %>% 
+  kable(caption = "Variables utilizadas en los modelos", booktabs = TRUE) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE,
+    position = "center"
+  )
+```
+
 -   **Recuperación**: Variable dependiente
 
 -   **Tratamiento** : Variable categórica que indica el típo de tratamiento que es sometido el paciente luego de la lesión, esta es una variable de nivel 2 ya que este no cambia en el tiempo.
 
--   **domicilio**: Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una varible de nivel 1.
+-   **domicilio**: Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una variable de nivel 1.
 
 -   **Sexo**
 
