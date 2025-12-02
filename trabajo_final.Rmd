@@ -125,6 +125,8 @@ Por ultimo, la variable `recuperacion`, definida como $recuperacion = \frac{bart
 data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    geom_line(aes(x=momento, y=recuperacion, group = factor(id),
                  color=factor(id)))+
+   geom_point(aes(x=momento, y=recuperacion, group = factor(id),
+                 color=factor(id)))+
    labs(color='id')+
    theme_bw()+
    scale_color_viridis_d()
@@ -262,16 +264,16 @@ Bajo esta problematica se evaluan los siguientes dos modelos, solo constantes al
 ```{r}
 mod3 <- lmer(recuperacion ~ momento2 + (1|id), data=data, REML=F)
 mod4 <- lmer(recuperacion ~ 1 + (0+momento2|id), data=data, REML=F)
-anova(mod3,mod4)
+compare_performance(mod3, mod4, rank = TRUE)
 ```
-
+_cambiar queda mod4_
 En función de las pruebas realizadas y del problema de singularidad observado al intentar estimar pendientes aleatorias, se adopta como estructura aleatoria final un modelo con intercepto aleatorio y pendiente fija para `momento2`. El modelo jerárquico resultante es:
 
 $$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=-1,0,2,11,23$$
 $$\beta_{0i}=\gamma_{00}+\eta_{0i}$$
 
 ```{r, echo=T}
-mod0 <- lmer(recuperacion ~ momento2 + (1|id), data=data)
+mod0 <- lmer(recuperacion ~ 1 + (0+momento2|id), data=data)
 summary(mod0, ddf = "Kenward-Roger")
 ```
 
@@ -281,7 +283,7 @@ summary(mod0, ddf = "Kenward-Roger")
 Se comienza un modelo base, donde hay un intercepto aleatorio para cada paciente y una variable temporal como efecto fijo. Luego, se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
 
 ```{r}
-mod1 = lmer(recuperacion ~ momento2 + sexo + edad2 + domicilio + (1|id), data= data)
+mod1 = lmer(recuperacion ~ sexo + edad2 + domicilio + (0+momento2|id), data= data)
 anova(mod0,mod1) # se acepta el modelo nuevo
 summary(mod1, ddf = "Kenward-Roger")
 ```
@@ -293,7 +295,7 @@ _cambiar, se da a entender que el anterior tenia tratamiento_
 Además, se incluye la variable tratamiento como efecto fijo, se decide incorporarla de esta forma y no como efecto aleatorio debido al objetivo que se planteó, se quiere identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
 
 ```{r}
-mod2= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + (1|id),data= data) #sacamos sexo y agregamos tratamineto, comparamos con mod0
+mod2= lmer(recuperacion ~ edad2 + domicilio + tratamiento + (0+momento2|id),data= data) #sacamos sexo y agregamos tratamineto, comparamos con mod0
 anova(mod0,mod2) #aceptamos el nuevo modelo
 summary(mod2, ddf = "Kenward-Roger")
 ```
@@ -303,37 +305,36 @@ _todo relevante_
 *probamos b_prev*
 
 ```{r,eval=F, echo=T}
-mod3= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + b_prev + (1|id),data= data)
+mod3= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + (0+momento2|id),data= data)
 anova(mod2,mod3) #se acepta el nuevo modelo
 summary(mod3, ddf = "Kenward-Roger")
 ```
-
+_no vale la pena, 95_
 *probamos b_ini*
 
 ```{r,eval=F, echo=T}
-mod4= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + b_prev + b_ini + (1|id),data= data)
+mod4= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + b_ini + (0+momento2|id),data= data)
 anova(mod3,mod4) #no da nada
 summary(mod4, ddf = "Kenward-Roger")
 ```
 
-_comentar no da nada_
+_no vale la pena_
 
 Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
 
 ```{r,eval=F, echo=T}
-mod5= lmer(recuperacion ~ momento2 + edad2 + domicilio + tratamiento + b_prev + momento2*tratamiento + (1|id),data= data)
-anova(mod3,mod5) #no da nada
+mod5= lmer(recuperacion ~ edad2 + domicilio + tratamiento + momento2*tratamiento + (0+momento2|id),data= data)
 summary(mod5, ddf = "Kenward-Roger")
 ```
 
-_comentario_
+_comentario, no da nada_
 
 ## Modelo final
 
 $$escribirlo$$
 
 ```{r}
-mod_final = mod3
+mod_final = mod2
 summary(mod_final)
 ```
 
@@ -342,16 +343,21 @@ _insterpretar_
 
 
 ```{r}
-data.frame(sexo=c('M', 'F'),
-                                              edad2=c(85-60, 85-60),
-                                              tratamiento = c('cirugía', 'fisioterapia'),
-                                              domicilio=c('si','si'),
-                                              momento2=c())
-predict(objecto=mod_final, newdata=data.frame(sexo=c('M', 'F'),
-                                              edad2=c(85-60, 85-60),
-                                              tratamiento = c('cirugía', 'fisioterapia'),
-                                              domicilio=c('si','si'),
-                                              momento2=c()))
+newdata <- 
+   data.frame(
+      id=c(rep(328,5),rep(329,5)),
+      sexo=c('M','M','M','M','M', 'F', 'F', 'F', 'F', 'F'),
+      edad2=c(rep(85-60, 10)),
+      tratamiento = c(rep('cirugía',5), rep('fisioterapia',5)),
+      domicilio=c(rep('si',10)),
+      momento2=c(-1,0,2,11,23,-1,0,2,11,23),
+      b_prev=c(rep(65,10)))
+
+newdata$recuperacion <- predict(object=mod_final, newdata=newdata)
+
+ggplot(newdata, aes(x=momento2, recuperacion, group = factor(tratamiento),color=factor(tratamiento)))+
+   geom_point()+
+   geom_line()
 ```
 
 
