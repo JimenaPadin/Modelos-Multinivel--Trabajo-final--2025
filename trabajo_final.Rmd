@@ -23,6 +23,8 @@ library(lme4)
 library(lmerTest) #para incluir los p valores
 library(kableExtra)
 library(performance)
+library(knitr)
+
 ```
 
 ```{r}
@@ -53,7 +55,7 @@ data$edad %>% summary()
 
 Diversos estudios han documentado que la densidad mineral ósea disminuye progresivamente con la edad. En particular, @zhang2010epidemiology señalan que la pérdida de densidad ósea se intensifica en la sexta década de vida, lo que incrementa el riesgo a fracturas. En nuestro conjunto de datos, los individuos presentan una edad media de 83.5 años, con un rango entre 65 y 101 años, valores claramente por encima de este umbral crítico. Por lo tanto, la edad adquiere un rol clínicamente relevante en el análisis de la recuperación funcional.
 
-Veamos la variabilidad de edades para esta muestra mediante un histograma, vemos que la mayoría de las personas que ingresaron al tratamiento tienen entre  80 y 90 años.
+Veamos la variabilidad de edades para esta muestra mediante un histograma, vemos que la mayoría de las personas que ingresaron al tratamiento tienen entre 80 y 90 años.
 
 ```{r}
 data_id <- data %>% 
@@ -121,6 +123,10 @@ data <- data %>% left_join(b_prev, by='id')%>% left_join(b_ini, by='id')
 
 Por ultimo, la variable `recuperacion`, definida como $recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}$, se encuentra disponible para todos los momentos de medición excepto para el momento previo a la lesión dado que la expresión carece de interpretación clínica.
 
+A continuación, se presenta un segundo gráfico con la evolución en el tiempo de cinco de los pacientes. Se identifica que todos comparten el mismo punto inicial, donde la tasa de recuperación al ingreso en el hospital vale 0, esto tiene sentido porque es el momento en el que sufrieron el traumatismo, previo a comenzar el tratamiento.
+
+Se puede observar que las pendientes de las trayectorias difieren, y que, además, hay algunas más largas que otras, indicando que hay pacientes a los que no se les realizó un seguimiento continuo en el tiempo o que abandonaron el tratamiento.
+
 ```{r,fig.height=3.5, caption='Trayectorias individuales de recuperación funcional para una muestra de pacientes seleccionados.'}
 data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    geom_line(aes(x=momento, y=recuperacion, group = factor(id),
@@ -132,17 +138,13 @@ data %>% filter(id%in%c(1:10), momento!='previo') %>% ggplot()+
    scale_color_viridis_d()
 ```
 
-
- 
- _hablar trayectorias_
- 
 # Metodología
 
 Al trabajar con medidas repetidas, hay varios modelos posibles, entre ellos el RM – ANOVA, el cual es una adaptación del modelo ANOVA para medidas repetidas. Este no es el que se utilizó para el presente análisis, ya que supone que los datos deben estar balanceados, y como se mencionó anteriormente, en los datos disponibles esto no sucede.
 
 Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos Mixtos (LME), debido a que es mucho más flexible con respecto a los supuestos y presenta varias ventajas con respecto al modelo anterior.
 
-## Descripción de las variables 
+## Descripción de las variables
 
 Para la creación de modelos se establece como variable dependiente la recuperación del paciente, `recuperacion`. Previo a crear los modelos, se realizaron algunos ajustes sobre los datos:
 
@@ -176,43 +178,52 @@ data <- data %>%
           id = as.factor(id))
 ```
 
-_hablar de porque no incorpotrramos barthel_
+*hablar de porque no incorpotrramos barthel*
 
 Por lo que las variables a seleccionar son:
 
-_esta raro, capaz va a en otro lado, tipo armarlo si como tabla despues de las correlaciones_
+*esta raro, capaz va a en otro lado, tipo armarlo si como tabla despues de las correlaciones*
 
-- **Recuperación**: Variable dependiente 
+-   **Recuperación**: Variable dependiente
 
-- **Tratamiento** : Variable categórica que indica el típo de tratamiento que es sometido el paciente luego de la lesión, esta es una variable de nivel 2 ya que este no cambia en el tiempo.
+-   **Tratamiento** : Variable categórica que indica el típo de tratamiento que es sometido el paciente luego de la lesión, esta es una variable de nivel 2 ya que este no cambia en el tiempo.
 
+-   **domicilio**: Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una varible de nivel 1.
 
-- **domicilio**: Variable dummy que indica si el individuo hizo la recuperacion en su domicilio (si) o en un centro de reahbilitación (no). Esta es una varible de nivel 1.
+-   **Sexo**
 
-- **Sexo**
+-   **momento2** : variable que toma como referencia el primer mes luego del ingreso, la metrica temporal queda definida como: $\{-1, 0, 2, 11, 23\}$, es una variable de nivel 1 ya que esta variable cambia en el tiempo.
 
-- **momento2** : variable que toma como referencia el primer mes luego del ingreso, la metrica temporal queda definida como: $\{-1, 0, 2, 11, 23\}$, es una variable de nivel 1 ya que esta variable cambia en el tiempo.
+-   **edad2** variable de edad de los individuos a la hora del ingreso , centrada en 60 años.
 
-- **edad2** variable de edad de los individuos a la hora del ingreso , centrada en 60 años. 
+-   **b_ini**: Indice de Barthel al ingreso al hospital.
 
-- **b_ini**: Indice de Barthel al ingreso de la lesión
+-   **b_prev**: Indice de Barthel previo a la lesion.
 
-- **b_prev**: Indice de Barthel previo a la lesion
+Se decidió no incorporar la variable Barthel al modelo debido a que como se mencionó anteriormente, esta se utiliza para construir la variable dependiente, por lo que el incluirla en el modelo llevaría a que absorba el efecto de las demás variables y se generen interpretaciones erróneas.
 
-_nota no usamos berthel, mirar corr_
+*mirar corr*
 
 Estudio la correlacion entre la variable dependiente recuperacion en cada momento del tiempo para la variable barthel
+
 ```{r}
 data |>
   group_by(momento2) |>
-  summarise(r_barthel = cor(barthel,recuperacion,use = "complete.obs"))
-         
+  summarise(r_barthel =cor(barthel,recuperacion,use = "complete.obs")) %>% mutate(r_barthel=round(r_barthel,2)) %>% rename("correlación"=r_barthel) %>% 
+  kable(caption = "Correlación entre barthel y recuperación", booktabs = TRUE) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE,
+    position = "center"
+  )
+
 ```
 
 # Modelado
 
 Se comienza por discernir la estructura apropiada de la matriz $\pmb D$. Bajo la hipótesis nula, se asume que ningún efecto aleatorio $k$ tiene un aporte significativo al modelo (modelo lineal):
 
+```{=tex}
 \begin{equation}
 H_0) \; \pmb D_i = 
 \begin{bmatrix}
@@ -220,13 +231,12 @@ H_0) \; \pmb D_i =
 \pmb 0_{k\times q} & \pmb 0_{k\times k}
 \end{bmatrix}
 \end{equation}
-
+```
 A partir de los modelos ajustados con `lmer(REML = FALSE)`, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
- 
+
 Después se establecen diferentes modelos...
 
-
-_Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados._
+*Se crearon diversos modelos LME utilizando la función lmer() del paquete lme4, además se aplicó la corrección de los grados de libertad de Kenward - Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.*
 
 # Resultados
 
@@ -253,11 +263,11 @@ LRT <- -2*(L1 - L2)
 pchisq(LRT,c(1,2),lower.tail = FALSE) |> mean()
 ```
 
-Si bien la prueba sugiere que el modelo con pendiente aleatoria mejora el ajuste, el ajuste del modelo más complejo presenta un problema de _boundary (singular) fit_.
+Si bien la prueba sugiere que el modelo con pendiente aleatoria mejora el ajuste, el ajuste del modelo más complejo presenta un problema de *boundary (singular) fit*.
 
 Esto se refleja en una varianza estimada de la pendiente aleatoria prácticamente nula y una correlación entre intercepto y pendiente igual a 1.00.
 
-Bajo estas condiciones, el modelo con pendiente aleatoria no es identificable y los valores del log-likelihood utilizados en el LRT no son confiables. _cantidad obs x id muy baja_
+Bajo estas condiciones, el modelo con pendiente aleatoria no es identificable y los valores del log-likelihood utilizados en el LRT no son confiables. *cantidad obs x id muy baja*
 
 Bajo esta problematica se evaluan los siguientes dos modelos, solo constantes aleatorias y solo pendientes aleatorias, de forma de ver que inclusion de la variable momentos2 es mas significativa:
 
@@ -266,17 +276,15 @@ mod3 <- lmer(recuperacion ~ momento2 + (1|id), data=data, REML=F)
 mod4 <- lmer(recuperacion ~ 1 + (0+momento2|id), data=data, REML=F)
 compare_performance(mod3, mod4, rank = TRUE)
 ```
-_cambiar queda mod4_
-En función de las pruebas realizadas y del problema de singularidad observado al intentar estimar pendientes aleatorias, se adopta como estructura aleatoria final un modelo con intercepto aleatorio y pendiente fija para `momento2`. El modelo jerárquico resultante es:
 
-$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=-1,0,2,11,23$$
-$$\beta_{0i}=\gamma_{00}+\eta_{0i}$$
+*cambiar queda mod4* En función de las pruebas realizadas y del problema de singularidad observado al intentar estimar pendientes aleatorias, se adopta como estructura aleatoria final un modelo con intercepto aleatorio y pendiente fija para `momento2`. El modelo jerárquico resultante es:
+
+$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=-1,0,2,11,23$$ $$\beta_{0i}=\gamma_{00}+\eta_{0i}$$
 
 ```{r, echo=T}
 mod0 <- lmer(recuperacion ~ 1 + (0+momento2|id), data=data)
 summary(mod0, ddf = "Kenward-Roger")
 ```
-
 
 ## Inclusión de covariables al modelo
 
@@ -290,7 +298,7 @@ summary(mod1, ddf = "Kenward-Roger")
 
 Del modelo anterior, se detecta que en contradicción con lo que la literatura señalaba, el genero del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
 
-_cambiar, se da a entender que el anterior tenia tratamiento_
+*cambiar, se da a entender que el anterior tenia tratamiento*
 
 Además, se incluye la variable tratamiento como efecto fijo, se decide incorporarla de esta forma y no como efecto aleatorio debido al objetivo que se planteó, se quiere identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
 
@@ -300,7 +308,7 @@ anova(mod0,mod2) #aceptamos el nuevo modelo
 summary(mod2, ddf = "Kenward-Roger")
 ```
 
-_todo relevante_
+*todo relevante*
 
 *probamos b_prev*
 
@@ -309,8 +317,8 @@ mod3= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + (0+momento2
 anova(mod2,mod3) #se acepta el nuevo modelo
 summary(mod3, ddf = "Kenward-Roger")
 ```
-_no vale la pena, 95_
-*probamos b_ini*
+
+*no vale la pena, 95* *probamos b_ini*
 
 ```{r,eval=F, echo=T}
 mod4= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + b_ini + (0+momento2|id),data= data)
@@ -318,7 +326,7 @@ anova(mod3,mod4) #no da nada
 summary(mod4, ddf = "Kenward-Roger")
 ```
 
-_no vale la pena_
+*no vale la pena*
 
 Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
 
@@ -327,7 +335,7 @@ mod5= lmer(recuperacion ~ edad2 + domicilio + tratamiento + momento2*tratamiento
 summary(mod5, ddf = "Kenward-Roger")
 ```
 
-_comentario, no da nada_
+*comentario, no da nada*
 
 ## Modelo final
 
@@ -338,9 +346,7 @@ mod_final = mod2
 summary(mod_final)
 ```
 
-_insterpretar_
-
-
+*insterpretar*
 
 ```{r}
 newdata <- 
@@ -359,13 +365,6 @@ ggplot(newdata, aes(x=momento2, recuperacion, group = factor(tratamiento),color=
    geom_point()+
    geom_line()
 ```
-
-
-
-
-
-
-
 
 Se llegó a un modelo final, el cual permite cumplir con los objetivos planteados, sin embargo, se abre espacio a mejorar el presentado modelo, debido a que problemas como el de la matriz singular persisten.
 
