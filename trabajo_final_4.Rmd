@@ -95,7 +95,7 @@ Respecto al tratamiento recibido, la elección entre tratamiento quirúrgico y f
 (data$domicilio %>% table())/nrow(data)
 ```
 
-Finalmente, la condición habitacional constituye un factor relevante en la recuperación funcional de adultos mayores. Vivir en el propio domicilio suele asociarse a mayor autonomía y una rutina previa más estable, lo que favorece la readquisición de habilidades motoras y funcionales. Por el contrario, residir en un hogar o institución puede reflejar una situación de mayor dependencia previa o menor movilidad, elementos que tienden a enlentecer la recuperación tras una fractura. En nuestros datos, el 69% de los pacientes residía en su domicilio y el 31% en instituciones, por lo que esta variable se incorpora como covariable a nivel individual para capturar diferencias en el nivel funcional previo y en el apoyo disponible durante el proceso de rehabilitación.
+Finalmente, la condición habitacional constituye un factor relevante en la recuperación funcional de adultos mayores. Vivir en el propio domicilio suele asociarse a mayor autonomía y una rutina previa más estable, lo que favorece la re-adquisición de habilidades motoras y funcionales. Por el contrario, residir en un hogar o institución puede reflejar una situación de mayor dependencia previa o menor movilidad, elementos que tienden a enlentecer la recuperación tras una fractura. En nuestros datos, el 69% de los pacientes residía en su domicilio y el 31% en instituciones, por lo que esta variable se incorpora como covariable a nivel individual para capturar diferencias en el nivel funcional previo y en el apoyo disponible durante el proceso de rehabilitación.
 
 ## Variables temporales
 
@@ -170,21 +170,28 @@ Dado al tipo de datos, se identifica a los individuos y sus variables como el ni
 
 Para la creación de modelos se establece como variable dependiente la recuperación del paciente, `recuperacion`. Previo a crear los modelos, se realizaron algunos ajustes sobre los datos:
 
--   Dado que al utilizar `recuperacion` como variable dependiente las observaciones de momento previo carecen de interpretación, las mismas fueron excluidas del análisis longitudinal. En su lugar se agrega una variable `b_prev` que indica el valor de índice de Barthel previo a la lesión.
+-   Dado que al utilizar `recuperacion` como variable dependiente las observaciones de momento previo carecen de interpretación, las mismas fueron excluidas del análisis longitudinal. En su lugar se agrega una variable `b_prev` que indica el valor de índice de Barthel previo a la lesión. La misma se va a centrar respecto a su media (84.3578).
 
 ```{r}
-# ya se hizo antes, en datos sobre momentos para verificar como se creaba recuperacion
+# ya se hizo antes, en datos sobre momentos para verificar como se creaba recuperación
+data %>% filter(momento=='previo') %>% summarise(mod=mean(barthel))#30
 data <- data %>% filter(momento!='previo')
+data$b_prev <- data$b_prev - 84.3578	
 ```
 
--   Dado que `recuperacion` se establece en 0 al momento del ingreso, mantener dicho momento produciria una constante sin interpretacion sustantiva y dificultaria la interpretacion de la variabilidad entre sujetos. Se decide excluir dichas observaciones y, en cambio, agregar una variable `b_ing` que indica el valor de índice de Barthel al momento del ingreso.
+-   Dado que `recuperacion` se establece en 0 al momento del ingreso, mantener dicho momento produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Se decide excluir dichas observaciones y, en cambio, agregar una variable `b_ing` que indica el valor de índice de Barthel al momento del ingreso. La misma se va a centrar respecto a su moda (30). Dado a que estamos sacando esta observación y que los únicos momentos que estaban para todos los individuos eran el previo y el ingreso, actualmente se va a modelar para 300 individuos.
 
-```{r}
-# ya se hizo antes, en datos sobre momentos para verificar como se creaba recuperacion
+```{r, include=F}
+# ya se hizo antes, en datos sobre momentos para verificar como se creaba recuperación
+mode <- function(x) {
+  return(as.numeric(names(which.max(table(x)))))
+}
+data %>% filter(momento=='ingreso') %>% summarise(mod=mode(barthel))#30
 data <- data %>% filter(momento!='ingreso')
+data$b_ing <- data$b_ing - 30
 ```
 
--   Considerando los cambios previos, la primera observacion longitudinal se define en el momento _1 mes_. Si se define este como momento 0, permite una mejor interpretacion de las constantes. Es por ello que la variable `momento2`, tomando en cuenta los meses transcurridos, se codifica {0, 2, 11, 23} para los momentos 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
+-   Considerando los cambios previos, la primera observación longitudinal se define en el momento _1 mes_. Si se define este como momento 0, permite una mejor interpretación de las constantes. Es por ello que la variable `momento2`, tomando en cuenta los meses transcurridos, se codifica {0, 2, 11, 23} para los momentos 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
 
 ```{r}
 data = data %>%  
@@ -300,131 +307,144 @@ $$\beta_{1i}=\gamma_{10}+\eta_{1i}$$
 
 ```{r, echo=T}
 # Modelo Base
-mod0 <- lmer(recuperacion ~ momento2 + (momento2|id), data=data)
-summary(mod0, ddf = "Kenward-Roger")
+mod0 <- lmer(recuperacion ~ 1 + (momento2|id), data=data)
 ```
 
-_COMENTARIO O SACO EL SUMMARY?_
+Primeramente veremos de agregar `momento2` como efecto fijo, dado al factor longitudinal.
+
+```{r, echo=T}
+mod1 = lmer(recuperacion ~ momento2 + (momento2|id), data=data)
+anova(mod0,mod1)
+```
+
+El test de máxima verosimilitud indica que toda momentos no aporta mayor información al modelo de la que ya esta aportando con pendientes aleatorias.
+
 
 ## Inclusión de covariables al modelo
 
 Se comienza un modelo base, donde hay un intercepto y pendiente aleatoria para cada paciente. Luego, se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
 
+```{r, echo=T, warning=F}
+mod2 = lmer(recuperacion ~ sexo + (momento2|id), data= data) #agregamos sexo
+anova(mod0,mod2) #no significativo
+
+mod3 = lmer(recuperacion ~ edad2 + (momento2|id), data= data) #agregamos edad
+anova(mod0,mod3) #muy significativo, se acepta el nuevo modelo
+
+mod4 = lmer(recuperacion ~ edad2 + domicilio + (momento2|id), 
+            data= data) #agregamos edad y domicilio
+anova(mod3,mod4) #significativo a mas del 95%, aceptamos el modelo nuevo
+```
+
+De los modelos anteriores, se detecta que en contradicción con lo que la literatura señalaba, el genero del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
+
+Además, se decide incluir la variable tratamiento como efecto fijo. Al incorporarla de esta forma se puede contrastar el objetivo planteado, identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
+
+```{r, echo=T, warning=F}
+mod5= lmer(recuperacion ~ edad2 + domicilio + tratamiento + (momento2|id),
+           data= data) #agregamos tratamiento a edad y domicilio
+anova(mod4,mod5) #aceptamos el nuevo modelo
+```
+
+Como era de esperarse, el test de máxima verosimilitud nos indica que tratamiento agrega mucha información al modelo.
+
+Se quiere ver si las variables creadas a partir de las observaciones de los momentos eliminados (previo e ingreso) pueden aportar una mayor calidad de ajuste.
+
 ```{r, echo=T}
-mod1 = lmer(recuperacion ~ sexo + edad2 + domicilio + (momento2|id), data= data)
-anova(mod0,mod1) # se acepta el modelo nuevo
-summary(mod1, ddf = "Kenward-Roger")
+mod6= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + (momento2|id), data= data)
+anova(mod5,mod6) # no significativo
+
+mod7 = lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing + (momento2|id), data= data)
+anova(mod5,mod7) # significativo al 95%
 ```
 
-Del modelo anterior, se detecta que en contradicción con lo que la literatura señalaba, el genero del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
+La variable que indica el indice de Barthel del cual inicialmente deben recuperarse los pacientes parece estar agregando una mayor calidad de ajuste, aunque en menos proporción a las variables anteriores. Sin embargo el estado previo a la lesión no proporciona nada.
 
-Además, se decide incluir la variable tratamiento como efecto fijo. al incorporarla de esta forma se puede contrastar el objetivo planteado, identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
+Se va a probar la interacción entre ambas variables, dado a que cambios abruptos en la calidad de vida pueden ser mas difíciles de recuperarse que aquellos leves:
 
 ```{r, echo=T}
-mod2= lmer(recuperacion ~ edad2 + domicilio + tratamiento + (momento2|id),data= data) #sacamos sexo y agregamos tratamineto, comparamos con mod0
-anova(mod0,mod2) #aceptamos el nuevo modelo
-summary(mod2, ddf = "Kenward-Roger")
+mod8= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing + b_ing:b_prev + 
+              (momento2|id), data= data)
+anova(mod7,mod8) # no significativo
 ```
 
-_todo relevante_
+Por ultimo se va a probar la interacción entre `tratamiento:momento` y `edad:momento`, dado que a pesar que el tipo de tratamiento es decidido a causa del estado de la lesión principalmente, es probable que para cierto tratamiento tenga una rápida recuperación en los primeros meses y después se enlentezca mientras que el otro puede ser mas paulatino.
 
-*probamos b_prev*
+```{r, warning=F, echo=T}
+mod9= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing + 
+              tratamiento:momento2 + (momento2|id), data= data)
+anova(mod7,mod9) # no significativo
 
-```{r,eval=F, echo=T}
-mod3= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_prev + (momento2|id), data= data)
-anova(mod2,mod3) # no da nada
-```
-La variable no es lo suficientemente significativa por si misma para ser incluida en el modelo.
-
-*probamos b_ing*
-
-```{r,eval=F, echo=T}
-mod4= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing + (momento2|id),data= data)
-anova(mod2,mod4) # da algo
-summary(mod4, ddf = "Kenward-Roger")
+mod10= lmer(recuperacion ~ edad2 + domicilio + tratamiento + 
+               b_ing + edad2:momento2 + (momento2|id), data= data)
+anova(mod7,mod10) # significativo al 90%, no 95%, no aceptamos
 ```
 
-La variable de significativa al 95% pero no al 99%, a la vez que empeora la significación de la edad. ver si alguna interacción aumenta la potencia.
+Dado que ninguno de los cambios propuestos fueron aceptados por el test de verosimilitud al 95%, procedemos a ver el summary del posible modelo final.
 
-*probamos b_ing x b_prev*
-
-```{r,eval=F, echo=T, warning=F}
-mod5= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing*b_prev + (momento2|id),data= data)
-anova(mod2,mod5) #no da nada
+```{r, echo=T}
+summary(mod7, ddf = "Kenward-Roger")
 ```
-
-no da nada
-
-*probamos b_ing x momento2*
-
-```{r,eval=F, echo=T}
-mod6= lmer(recuperacion ~ edad2 + domicilio + tratamiento + b_ing*momento2 + (momento2|id),data= data)
-anova(mod2,mod6) # da casi al 99%, no se si dejarlo o no
-summary(mod6)
-```
-
-_voy a no dejar b_ing o la interaccion con momento ahora, pero decidir y agregar. yo creo que puede estar bueno, sobre tood como interaccion la significacion aumenta y me parece que el barchel ingreso puede ser mas relevante en primeras etapas de recuperacion que en ultimas_
-
-_me acaba de entrar la duda de que momento2 tambien tiene que estar como efecto fijo? porque si la ponemos en el mod0 no da significativa como fijo. capaz que eso evaluar como primer modelo para explicar porque no aparece ahi y solo en pendientes_
-
-_tambien me falto la interaccion tratamiento*momento2_
-
-Como la pregunta que se buscaba responder es si el tratamiento tiene efectos sobre la evolución de la recuperación, además de incluir el efecto fijo del tratamiento, se decidió incorporar la interacción entre momento y tratamiento, de la cual también se desprende que su efecto no es significativo sobre la variable dependiente.
-
-```{r,eval=F, echo=T}
-mod5= lmer(recuperacion ~ edad2 + domicilio + tratamiento + momento2*tratamiento + (0+momento2|id),data= data)
-summary(mod5, ddf = "Kenward-Roger")
-```
-
-_comentario, no da nada_
 
 ## Modelo final
 
-$$escribirlo$$
+Dado las variables del modelo final, la formula jerárquica toma la siguiente forma:
 
-```{r, eval=F, echo=T}
-mod_final = 
-summary(mod_final)
-```
+$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=0,2,11,23$$
+$$\beta_{0i}=\gamma_{00}+\gamma_{01}edad2_{i}+\gamma_{02}domicilio_{i}+\gamma_{03}tratamiento_i + \gamma_{04}b\_ing_i + \eta_{0i}$$
+$$\beta_{1i}=\gamma_{10}+\eta_{1i}$$
+-  $\gamma_{00}$ representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
 
-_insterpretar_
+- $\gamma{10}$ es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
+
+[Estimaciones:]{.underline}
+
+-  $\gamma_{00}=0.66$ indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
+
+- $\gamma_{01}=-0.006$ indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
+
+- $\gamma_{02}=0.12$ indica que, si el individuo reside en domicilio propio, la recuperación global aumenta 0,12, tal como indica la literatura.
+
+-  $\gamma{03}=0.17$ indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
+
+-  $\gamma_{04}=0.004$ indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es mas fácil recuperarse.
+
+-  Para $\eta_{0i}$, la varianza se estima en $0.0562246$, lo cual representa la variabilidad entre sujetos en el intercepto del modelo. Es decir, indica cuánto difieren entre sí los niveles iniciales de recuperación funcional (cuando todas las covariables están centradas) entre los diferentes individuos.
+
+-  Para $\eta_{1i}$, la varianza se estima en $0.0002257$, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja. En términos prácticos, esto implica que la evolución temporal de la recuperación funcional es muy similar entre individuos, y el modelo no detecta diferencias sustanciales en las tasas de cambio.
+
+-  Para $\varepsilon_{it}$, la varianza se estima en $0.0946870$, lo cual representa la variabilidad individualmente no explicada por el modelo, es decir, las diferencias residuales en la recuperación de un mismo individuo a lo largo del tiempo, luego de controlar por los efectos fijos y aleatorios.
+
+\newpage
 
 ## Predicción
 
-_capaz que esto lo reescribo para compararlo con trayectorias reales buenas y malas_
-
-```{r, eval=F, echo=T}
-newdata <- 
-   data.frame(
-      id=c(rep(328,4),rep(329,4)),
-      sexo=c('M','M','M','M', 'F', 'F', 'F', 'F'),
-      edad2=c(rep(85-60, 8)),
-      tratamiento = c(rep('cirugía',4), rep('fisioterapia',4)),
-      domicilio=c(rep('si',8)),
-      momento2=c(0,2,11,23,0,2,11,23),
-      b_ini=c(rep(30,8)))
-
-newdata$recuperacion <- predict(object=mod2, newdata=newdata)
-
-ggplot(newdata, aes(x=momento2, recuperacion, group = factor(tratamiento),color=factor(tratamiento)))+
-   geom_point()+
-   geom_line()
-
-data %>% filter(momento=='ingreso') %>%  ggplot()+geom_histogram(aes(x=as.numeric(barthel)))
-data %>% group_by(momento) %>% 
-   summarise(r_min=min(recuperacion,na.rm = T),
-             r_media=mean(recuperacion,na.rm = T),
-             r_max=max(recuperacion,na.rm = T),)
+```{r, echo=T}
+mod_final = mod7
 ```
 
+Se va a comparar los datos reales de 4 individuos y su predicción, destacando que hayan tenido una recuperación alta y baja y ambos tipos de tratamiento, intentando mantener la edad constante. Obviamente predecir con los datos que estamos entrenando tiene riesgos de overfitting, pero es para poder observar las formas de aproximar que tiene el modelo.
 
+```{r, fig.cap='Trayectorias reales y predichas de 4 individuos.', fig.height=3}
+newdata <- data %>% filter(id%in%c(260, 262, 291, 49))
+newdata$recuperacion_pred <- predict(object=mod7, newdata=newdata)
 
+ggplot(newdata)+
+   geom_point(aes(x=momento2, y=recuperacion, color=factor(id)))+
+   geom_point((aes(x=momento2, y=recuperacion_pred, color=factor(id))))+
+   geom_line(aes(x=momento2, y=recuperacion, color=factor(id)))+
+   geom_line(aes(x=momento2, y=recuperacion_pred, color=factor(id)), linetype = 'dashed')+
+   theme_bw()+
+   scale_color_viridis_d()
+```
 
+Los individuos 49 y 291 tienen 94 y 91 años respectivamente, siendo que el primero fue sometido a cirugía mientras que el segundo recibió tratamiento de fisioterapia. Se puede observar que sus trayectorias se cruzan, manteniéndose parecidas pero el 291 termina con una recuperación superior.
 
+Los individuos 260 y 262 tienen 88 y 89 años respectivamente, siendo que el primero fue sometido a cirugía mientras que el segundo recibió tratamiento de fisioterapia. Las trayectorias predichas son casi idénticas, siendo nuevamente el que recibió fisioterapia (262) quien termina teniendo una recuperación levemente mayor.
 
+# Conclusion
 
-
-Se llegó a un modelo final, el cual permite cumplir con los objetivos planteados, sin embargo, se abre espacio a mejorar el presentado modelo, debido a que problemas como el de la matriz singular persisten.
+El modelo multinivel ajustado permitió captar adecuadamente la evolución de la recuperación funcional en adultos mayores tras una fractura de muñeca. A partir de una estructura jerárquica con intercepto y pendiente aleatoria por individuo, se identificaron efectos significativos de variables como la edad, el tratamiento recibido, el lugar de residencia y el nivel funcional al ingreso. Si bien persisten desafíos técnicos como la singularidad de la matriz de varianzas, los resultados obtenidos reflejan trayectorias coherentes con la literatura clínica y ofrecen una base sólida para futuras mejoras en el modelado.
 
 \newpage
 
