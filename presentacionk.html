@@ -3,7 +3,8 @@
   <head>
     <title>Trabajo final</title>
     <meta charset="utf-8" />
-    <meta name="author" content="Matías Bajac y Jimena Padín Luciana Viscailuz" />
+    <meta name="author" content="Matías Bajac - Jimena Padín - Luciana Viscailuz" />
+    <meta name="date" content="2025-01-01" />
     <script src="libs/header-attrs/header-attrs.js"></script>
     <link href="libs/tile-view/tile-view.css" rel="stylesheet" />
     <script src="libs/tile-view/tile-view.js"></script>
@@ -22,18 +23,16 @@ class: center, middle, inverse, title-slide
 # Trabajo final
 ]
 .subtitle[
-## Introducción a los Modelos Multinivel 2025
+## Introducción a los Modelos Multinivel
 ]
 .author[
-### Matías Bajac y Jimena Padín Luciana Viscailuz
+### Matías Bajac - Jimena Padín - Luciana Viscailuz
 ]
 .date[
-### 27 de Noviembre 2025
+### 2025
 ]
 
 ---
-
-
 
 
 
@@ -46,11 +45,17 @@ class: header_background
 
 # Introducción 
 
+&lt;span style="font-size: 1.1em;"&gt;
 El estado físico y funcional del cuerpo humano desempeña un papel central en la calidad de vida de un individuo. A partir de cierta edad se producen cambios fisiológicos que afectan a varios sistemas de forma progresiva, entre ellos el musculo-esquelético. La disminución de la densidad osea incrementa la fragilidad en los huesos y favorece la aparición ante impactos relativamente leves. Este suceso se ve acelerado particularmente en mujeres tras la menopausia. Paralelamente, la pérdida de masa muscular, la reducción de reflejos y el deterioro del control motor y del equilibrio contribuyen a un mayor riesgo de caídas en adultos mayores.
+&lt;/span&gt;
 
+&lt;span style="font-size: 1.1em;"&gt;
 En adultos mayores, lesiones de este índole afectan directamente su autonomía y capacidad para realizar actividades básicas de la vida diaria. La recuperación funcional posterior a estos eventos es un proceso complejo influido por factores individuales (edad, sexo), condiciones de vida y el tratamiento recibido, ya sea fisioterapia u opciones quirúrgicas.
+&lt;/span&gt;
 
+&lt;span style="font-size: 1.1em;"&gt;
 Debido al componente dependiente de los datos, dado a que estos resultan ser múltiples mediciones de un mismo individuo, contar con herramientas que permitan evaluar la evolución funcional de los pacientes resulta fundamental. Medidas estandarizadas como el Índice de Barthel permiten cuantificar el nivel de independencia antes y después del traumatismo, y constituyen un insumo valioso para estudiar trayectorias de recuperación. Los modelos multinivel representan una estrategia estadística adecuada para analizar datos longitudinales, capturar variabilidad individual en los procesos de cambio y evaluar el efecto diferencial de los tratamientos, de acuerdo con los objetivos del estudio presentado en este informe.
+&lt;/span&gt;
 
 ---
 
@@ -58,7 +63,67 @@ class: header_background
 
 # Datos
 
+&lt;span style="font-size: 1.1em;"&gt;
 Se cuenta con información longitudinal de 327 adultos mayores que sufrieron un traumatismo de muñeca, producto de una caída. Para cada individuo se registran siete variables vinculadas a factores personales y el contexto temporal de la medición. Se excluyó un individuo que presentaba dos fracturas en años distintos sin información funcional previa suficiente para reconstruir una trayectoria longitudinal consistente.
+&lt;/span&gt;
+
+&amp;nbsp;
+
+
+| id|sexo | edad|tratamiento  |domicilio |momento | barthel| recuperacion|
+|--:|:----|----:|:------------|:---------|:-------|-------:|------------:|
+|  1|M    |   89|cirugía      |si        |previo  |     100|           NA|
+|  1|M    |   89|cirugía      |si        |ingreso |      30|    0.0000000|
+|  1|M    |   89|cirugía      |si        |1 mes   |      30|    0.0000000|
+|  1|M    |   89|cirugía      |si        |3 meses |      50|    0.2857143|
+|  2|F    |   96|fisioterapia |no        |previo  |      85|           NA|
+|  2|F    |   96|fisioterapia |no        |ingreso |      30|    0.0000000|
+
+---
+
+class: header_background
+
+# Análisis exploratorio 
+
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/momentos.png" width="60%"&gt;
+]
+
+Se observa un diseño desbalanceado en la variable temporal **momento**, dado que la cantidad de observaciones disponibles difiere entre los distintos tiempos de medición.
+
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/desbalanceo.png" width="60%"&gt;
+]
+
+---
+class: header_background
+#Análisis exploratorio 
+
+Se puede observar la alta correlación entre Barthel y la recuperación en cada momento del tiempo, esto tiene sentido debido a como se define la variable recuperación
+
+&amp;nbsp;
+
+`$$recuperacion = \cfrac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}$$`
+
+&amp;nbsp;
+
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/barthel.png" width="60%"&gt;
+]
+
+---
+class: header_background
+
+#Análisis exploratorio 
+
+A continuación, se presenta un segundo gráfico con la evolución en el tiempo de diez de los pacientes. Se identifica que todos comparten el mismo punto inicial, donde la tasa de recuperación al ingreso en el hospital vale 0. Esto tiene sentido ya que es el momento en el que sufrieron el traumatismo, previo a comenzar el tratamiento.
+
+Se puede observar que las pendientes de las trayectorias difieren, y que, además, hay algunas más largas que otras, indicando que hay pacientes a los que no se les realizó un seguimiento continuo en el tiempo o que abandonaron el tratamiento.
+
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/pendientes.png" width="60%"&gt;
+]
+
 
 ---
 class: header_background
@@ -70,18 +135,19 @@ Para la creación de modelos se establece como variable dependiente la recuperac
 -   Dado que al utilizar **recuperación** como variable dependiente las observaciones de momento previo carecen de interpretación, las mismas fueron excluidas del análisis longitudinal. En su lugar se agrega una variable **b_prev** que indica el valor de índice de Barthel previo a la lesión. La misma se va a centrar respecto a su media (84.3578).
 
 
--   Dado que **recuperación** se establece en 0 al momento del ingreso, mantener dicho momento produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Se decide excluir dichas observaciones y, en cambio, agregar una variable `b_ing` que indica el valor de índice de Barthel al momento del ingreso. La misma se va a centrar respecto a su moda (30). Dado a que estamos sacando esta observación y que los únicos momentos que estaban para todos los individuos eran el previo y el ingreso, actualmente se va a modelar para 300 individuos.
+-   Dado que **recuperación** se establece en 0 al momento del ingreso, mantener dicho momento produciría una constante sin interpretación sustantiva y dificultaría la interpretación de la variabilidad entre sujetos. Se decide excluir dichas observaciones y, en cambio, agregar una variable **b_ing** que indica el valor de índice de Barthel al momento del ingreso. La misma se va a centrar respecto a su moda (30). Dado a que estamos sacando esta observación y que los únicos momentos que estaban para todos los individuos eran el previo y el ingreso, actualmente se va a modelar para 300 individuos.
 
 -   Considerando los cambios previos, la primera observación longitudinal se define en el momento **1 mes**. Si se define este como momento 0, permite una mejor interpretación de las constantes. Es por ello que la variable **momento2**, tomando en cuenta los meses transcurridos, se codifica {0, 2, 11, 23} para los momentos 1 mes, 3 meses, 12 meses y 24 meses, respectivamente.
 
--   Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo ($edad2 = edad-60$).
-
-
+-   Respecto a la edad, siguiendo la literatura que indica el umbral critico referente a la densidad osea, se decide centrar la variable respecto a 60, con el fin que la interpretación de la constante refiera a la recuperación promedio en el umbral, y varíe para cada año por sobre el mismo (`\(edad2 = edad-60\)`).
 
 ---
+
 class: header_background
 
 # Variables seleccionadas 
+
+&amp;nbsp;
 
 | Variable     | Descripción                                         | Valores               | Nivel   |
 |--------------|-----------------------------------------------------|------------------------|---------|
@@ -99,55 +165,21 @@ Nota: Se decidió no incorporar la variable Barthel al modelo debido a que como 
 
 ---
 
-class: header_background
-
-#Análisis exploratorio 
-
-.center[
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/momentos.png" width="60%"&gt;
-
-]
----
-class: header_background
-#Análisis exploratorio 
-
-Se puede observar la alta correlacion entre Barthel y la recuperación en cada momento del tiempo, esto tiene sentido debido a como se define la variable recuperación `\(recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}\)`
-.center[
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/barthel.png" width="60%"&gt;
-
-]
----
-class: header_background
-
-#Análisis exploratorio 
-
-A continuación, se presenta un segundo gráfico con la evolución en el tiempo de diez de los pacientes. Se identifica que todos comparten el mismo punto inicial, donde la tasa de recuperación al ingreso en el hospital vale 0. Esto tiene sentido ya que es el momento en el que sufrieron el traumatismo, previo a comenzar el tratamiento.
-
-Se puede observar que las pendientes de las trayectorias difieren, y que, además, hay algunas más largas que otras, indicando que hay pacientes a los que no se les realizó un seguimiento continuo en el tiempo o que abandonaron el tratamiento.
-
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/pendientes.png" width="60%"&gt;
-
-
----
-
-class: header_background
-
-#Análisis exploratorio
-
-Se observa un diseño desbalanceado en la variable temporal momento, dado que la cantidad de observaciones disponibles difiere entre los distintos tiempos de medición.
-
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/desbalanceo.png" width="60%"&gt;
-
-
----
-
 # Metodología 
 
+&amp;nbsp;
+
+&lt;span style="font-size: 1.1em;"&gt;
 Al trabajar con medidas repetidas, hay varios modelos posibles, entre ellos el RM – ANOVA, el cual es una adaptación del modelo ANOVA para medidas repetidas. Este no es el que se utilizó para el presente análisis, ya que supone que los datos deben estar balanceados, y como se mencionó anteriormente, en los datos disponibles esto no sucede.
+&lt;/span&gt;
 
+&lt;span style="font-size: 1.1em;"&gt;
 Otro modelo posible, y con el que se decidió trabajar es el Modelo de Efectos Mixtos (LME), debido a que es mucho más flexible con respecto a los supuestos y presenta varias ventajas con respecto al modelo anterior.
+&lt;/span&gt;
 
+&lt;span style="font-size: 1.1em;"&gt;
 Dado al tipo de datos, se identifica a los individuos y sus variables como el nivel 2 `\((i)\)`, mientras que las observaciones para cada individuo son de nivel 1 `\((t)\)`.
+&lt;/span&gt;
 
 ---
 class: header_background
@@ -156,12 +188,14 @@ class: header_background
 
 Se comienza por discernir la estructura apropiada de la matriz `\(\pmb D\)`. Bajo la hipótesis nula, se asume que ningún efecto aleatorio `\(k\)` tiene un aporte significativo al modelo (modelo lineal)
 
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/matrizD.png" width="60%"&gt;
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/matrizD.png" width="30%"&gt;
+]
 
 
-A partir de los modelos ajustados con `lmer(REML = FALSE)`, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
+A partir de los modelos ajustados con **lmer(REML = FALSE)**, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
 
-Una vez establecida la estructura de `\(\pmb D\)`, se crearon diversos modelos LME utilizando la función `lmer(`) del paquete `lme4`, además se aplicó la corrección de los grados de libertad de Kenward-Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
+Una vez establecida la estructura de `\(\pmb D\)`, se crearon diversos modelos LME utilizando la función **lmer()** del paquete **lme4**, además se aplicó la corrección de los grados de libertad de Kenward-Roger, la cual presenta ventajas sobre la corrección Satterthwait especialmente en muestras pequeñas y datos desbalanceados.
 
 ---
 
@@ -169,7 +203,11 @@ class: header_background
 
 # Resultados 
 
+&amp;nbsp;
+
+&lt;span style="font-size: 1.2em;"&gt;
 Se hace el procedimiento "forward" donde se parte de un modelo base solo con constante aleatoria, hasta llegar al modelo final. Se compara cada modelo mediante el test de razón de verosimilitud.
+&lt;/span&gt;
 
 ---
 
@@ -179,110 +217,142 @@ class: header_background
 
 Ajustamos tres modelos:
 
+&amp;nbsp;
+
  Modelo 0 : `\(Recuperacion_{it} = \beta_{0} + \epsilon_{it}\)`
- 
+
+&amp;nbsp;
+
  Modelo 1: `\(Recuperación_{it} =  \beta_{0i} + \epsilon_{it}\)`
  
  con `\(\beta_{oi} = \gamma_{00} + \eta_{0i}\)`
 
+&amp;nbsp;
 
 
 Dado el resultado del test se adopta como estructura aleatoria final un modelo con constantes y pendientes aleatorias. El modelo jerárquico resultante es
 
+&amp;nbsp;
+
 Modelo 2: `\(Recuperacion_{it} = \beta_{oi} + \beta_{1i}momentos_{it} + \epsilon_{it}\)`
 
  con `\(\beta_{oi} = \gamma_{00} + \eta_{0i} ,\  \beta_{1i} = \gamma_{10} + \eta_{1i} \qquad i=1,2,...,327\quad t=0,2,11,23\)` 
+
 ---
 
 class: header_background
 
 # Modelos
 
-Primeramente veremos de agregar `momento2` como efecto fijo, dado al factor longitudinal.
+&lt;span style="font-size: 1.1em;"&gt;
+Primeramente veremos de agregar **momento2** como efecto fijo, dado al factor longitudinal.
+&lt;/span&gt;
 
-para ello nos valemos del test de razon de verosimilitud 
+&lt;span style="font-size: 1.1em;"&gt;
+Para ello nos valemos del test de razón de verosimilitud 
+&lt;/span&gt;
 
-Hacemos la prueba de hipotesis 
+&lt;span style="font-size: 1.1em;"&gt;
+Hacemos la prueba de hipótesis :
+&lt;/span&gt;
 
-`\(H_0: \gamma_{10} = 0 \ vs \ H_1 \gamma_{10} \neq 0\)`
+&lt;span style="font-size: 1.1em;"&gt;
+`\(H_0)\; \gamma_{10} = 0 \qquad vs \qquad H_1)\; \gamma_{10} \neq 0\)`
+&lt;/span&gt;
 
-El p valor del test dio  0.1245 por lo que no rechazamos la hipotesis nula, es decir no hay suficiente evidencia para decir que el efecto fijo de momentos aporte información adicional. 
-
+&lt;span style="font-size: 1.1em;"&gt;
+El p-valor del test dio  0.1245 por lo que no rechazamos la hipótesis nula, es decir no hay suficiente evidencia para decir que el efecto fijo de momentos aporte información adicional. 
+&lt;/span&gt;
 ---
+
+class: header_background
 
 #Modelos
 
-class: header_background
-
+&lt;span style="font-size: 1.1em;"&gt;
 Se incorporan como efectos fijos otras variables como la edad al momento del traumatismo, el sexo y domicilio del paciente, que como se mencionó anteriormente, la literatura las identifica como variables relevantes.
 
+&lt;span style="font-size: 1.1em;"&gt;
 Primero se agrega como variable fija el sexo, y se hace el test de verosimilitud con el modelo base (pendiente e intercepto aleatorio), dando un p valor &gt; al 0.05, por lo cual no incluimos esta variable en el modelo.
 
+&lt;span style="font-size: 1.1em;"&gt;
 Luego, ajustamos un modelo con edad como variable fija, y lo comparamos con nuestro modelo base, llegando a que esta covariable es significativa. 
 
+&lt;span style="font-size: 1.1em;"&gt;
 Por úlitmo, incorporamos la variable domomicilio al modelo anterior, dandonos sigificativa. 
 
+&lt;span style="font-size: 1.1em;"&gt;
 De los modelos anteriores, se detecta que en contradicción con lo que la literatura señalaba, el sexo del paciente no es significativo para explicar la recuperación del mismo, por lo que se decide prescindir de esta variable.
 
 ---
+
 class: header_background
 
 # Modelos 
 
-Aemás, se decide incluir la variable tratamiento como efecto fijo. Al incorporarla de esta forma se puede contrastar el objetivo planteado, identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
+&lt;span style="font-size: 1.1em;"&gt;
+Además, se decide incluir la variable tratamiento como efecto fijo. Al incorporarla de esta forma se puede contrastar el objetivo planteado, identificar el efecto del tratamiento sobre la recuperación en si mismo, es decir, detectar si la evolución en la recuperación de los pacientes varía según el tratamiento proporcionado.
 
+&lt;span style="font-size: 1.1em;"&gt;
 Como era de esperarse, el test de máxima verosimilitud nos indica que tratamiento agrega mucha información al modelo.
 
+&lt;span style="font-size: 1.1em;"&gt;
 Se quiere ver si las variables creadas a partir de las observaciones de los momentos eliminados (previo e ingreso) pueden aportar una mayor calidad de ajuste.
 
----
-class: header_background
-
-# Modelos 
-
+&lt;span style="font-size: 1.1em;"&gt;
 La variable que indica el indice de Barthel del cual inicialmente deben recuperarse los pacientes parece estar agregando una mayor calidad de ajuste, aunque en menos proporción a las variables anteriores. Sin embargo el estado previo a la lesión no proporciona nada.
 
 ---
+
 class: header_background
 
-## Modelo Final:
+# Modelo Final
 
+&amp;nbsp;
+
+&lt;span style="font-size: 1.1em;"&gt;
 Dado las variables del modelo final, la formula jerárquica toma la siguiente forma:
 
+&lt;span style="font-size: 1.1em;"&gt;
 `$$recuperacion_{it} = \beta_{0i} + \beta_{1i}momento2_{it} + \varepsilon_{it} \qquad i=1,2,...,327\quad t=0,2,11,23$$`
 `$$\beta_{0i}=\gamma_{00}+\gamma_{01}edad2_{i}+\gamma_{02}domicilio_{i}+\gamma_{03}tratamiento_i + \gamma_{04}b\_ing_i + \eta_{0i}$$`
 `$$\beta_{1i}=\gamma_{10}+\eta_{1i}$$`
+
+&amp;nbsp;
+
+&lt;span style="font-size: 1.1em;"&gt;
+-  `\(\gamma_{00}\)` representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
+
+&lt;span style="font-size: 1.1em;"&gt;
+-  `\(\gamma_{10}\)` es el efecto fijo promedio del tiempo **momento2** sobre la recuperación funcional al momento _primer mes_ tras lesión.
+
 ---
 class: header_background
 
-# Modelo Final 
+#Estimaciones 
 
- `\(\gamma_{00}\)` representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
+&lt;span style="font-size: 1.1em;"&gt;
+- `\(\gamma_{00}=0.66\)` indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
 
- `\(\gamma{10}\)` es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
+&lt;span style="font-size: 1.1em;"&gt;
+- `\(\gamma_{01}=-0.006\)` indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
 
---- 
-class: header_background
-# Estimaciones 
-
- `\(\gamma_{00}=0.66\)` indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
-
- `\(\gamma_{01}=-0.006\)` indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
----
-class: header_background
-
-# Estimaciones 
-
+&lt;span style="font-size: 1.1em;"&gt;
 - `\(\gamma_{02}=0.12\)` indica que, si el individuo reside en domicilio propio, la recuperación global aumenta 0,12, tal como indica la literatura.
 
+&lt;span style="font-size: 1.1em;"&gt;
 - `\(\gamma_{03}=0.17\)` indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
 
+&lt;span style="font-size: 1.1em;"&gt;
 - `\(\gamma_{04}=0.004\)` indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es más fácil recuperarse.
 
+&lt;span style="font-size: 1.1em;"&gt;
 - Para `\(\eta_{0i}\)`, la varianza se estima en `\(0.0562246\)`, lo cual representa la variabilidad entre sujetos en el intercepto del modelo.
 
-- Para `\(\eta_{1i}\)`, la varianza se estima en `\(0.0002257\)`, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja.
+&lt;span style="font-size: 1.1em;"&gt;
+- Para `\(\eta_{1i}\)`, la varianza se estima en `\(0.0002257\)`, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo **momento2** es extremadamente baja.
 
+&lt;span style="font-size: 1.1em;"&gt;
 - Para `\(\varepsilon_{it}\)`, la varianza se estima en `\(0.0946870\)`, lo cual representa la variabilidad individual no explicada por el modelo.
 
 ---
@@ -291,9 +361,12 @@ class: header_background
 
 # Predicción
 
+&lt;span style="font-size: 1.1em;"&gt;
 Se va a comparar los datos reales de 4 individuos y su predicción, destacando que hayan tenido una recuperación alta y baja y ambos tipos de tratamiento, intentando mantener la edad constante.
 
-&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/prediccion.png" width="60%"&gt;
+.center[
+&lt;img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/prediccion.png" width="55%"&gt;
+]
 
 ---
 
@@ -301,18 +374,33 @@ class: header_background
 
 # Conclusión 
 
+&amp;nbsp;
+
+&lt;span style="font-size: 1.1em;"&gt;
 El modelo multinivel ajustado permitió captar adecuadamente la evolución de la recuperación funcional en adultos mayores tras una fractura de muñeca. A partir de una estructura jerárquica con intercepto y pendiente aleatoria por individuo, se identificaron efectos significativos de variables como la edad, el tratamiento recibido, el lugar de residencia y el nivel funcional al ingreso. Si bien persisten desafíos técnicos como la singularidad de la matriz de varianzas, los resultados obtenidos reflejan trayectorias coherentes con la literatura clínica y ofrecen una base sólida para futuras mejoras en el modelado.
 
 ---
+
+class: middle, center
+
+##¿Preguntas?
+
+---
+
+class: middle, center
+
+
+##Muchas gracias
+
     </textarea>
 <style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script>var slideshow = remark.create({
-"ratio": "16:9",
-"highlightStyle": "github",
-"slideNumberFormat": "%current%",
-"highlightLines": true,
-"countIncrementalSlides": false
+  "ratio": "16:9",
+  "highlightStyle": "github",
+  "slideNumberFormat": "%current%",
+  "highlightLines": true,
+  "countIncrementalSlides": false
 });
 if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
   window.dispatchEvent(new Event('resize'));
