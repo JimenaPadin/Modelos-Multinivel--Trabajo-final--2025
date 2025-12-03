@@ -179,7 +179,8 @@ class: header_background
 #Análisis exploratorio 
 
 .center[
-![](momentos.png)
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/momentos.png" width="60%">
+
 ]
 ---
 class: header_background
@@ -199,7 +200,8 @@ A continuación, se presenta un segundo gráfico con la evolución en el tiempo 
 
 Se puede observar que las pendientes de las trayectorias difieren, y que, además, hay algunas más largas que otras, indicando que hay pacientes a los que no se les realizó un seguimiento continuo en el tiempo o que abandonaron el tratamiento.
 
-<img src="pendientes.png" width="55%">
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/pendientes.png" width="60%">
+
 
 ---
 
@@ -328,42 +330,52 @@ $$\beta_{1i}=\gamma_{10}+\eta_{1i}$$
 ---
 class: header_background
 
-#Modelo Final 
+# Modelo Final 
 
--  $\gamma_{00}$ representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
+ $\gamma_{00}$ representa el promedio de recuperación para un individuo que al momento del traumatismo se encuentra en el umbral de riesgo (60 años), no reside en domicilio propio, el tratamiento recibido fue cirugía y al momento del ingreso su indice de Barthel fue de 30.
 
-- $\gamma{10}$ es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
+ $\gamma{10}$ es el efecto fijo promedio del tiempo `momento2` sobre la recuperación funcional al momento _primer mes_ tras lesión.
 
 --- 
+class: header_background
+# Estimaciones 
+
+ $\gamma_{00}=0.66$ indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
+
+ $\gamma_{01}=-0.006$ indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
+---
 class: header_background
 
 # Estimaciones 
 
--  $\gamma_{00}=0.66$ indica que, bajo las condiciones antes mencionadas, el promedio global de recuperación es de 0,66, es decir el 66%.
-
-- $\gamma_{01}=-0.006$ indica que, para cada año por sobre la región critica de densidad osea (60 años), la recuperación global del individuo disminuye un 0,006.
-
 - $\gamma_{02}=0.12$ indica que, si el individuo reside en domicilio propio, la recuperación global aumenta 0,12, tal como indica la literatura.
 
--  $\gamma{03}=0.17$ indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
+- $\gamma_{03}=0.17$ indica que, si el individuo se somete a tratamiento de fisioterapia en vez de cirugía, la recuperación global aumenta 0,17.
+
+- $\gamma_{04}=0.004$ indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es más fácil recuperarse.
+
+- Para $\eta_{0i}$, la varianza se estima en $0.0562246$, lo cual representa la variabilidad entre sujetos en el intercepto del modelo.
+
+- Para $\eta_{1i}$, la varianza se estima en $0.0002257$, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja.
+
+- Para $\varepsilon_{it}$, la varianza se estima en $0.0946870$, lo cual representa la variabilidad individual no explicada por el modelo.
 
 ---
 
 class: header_background
 
-# Estimaciones 
+# Predicción
 
--  $\gamma_{04}=0.004$ indica que, por cada unidad aumentada sobre la moda de el indice de Barthel al ingreso (30), la recuperación aumenta un 0,004. Es decir, cuanto menos haya decaído tu calidad de vida, es mas fácil recuperarse.
+Se va a comparar los datos reales de 4 individuos y su predicción, destacando que hayan tenido una recuperación alta y baja y ambos tipos de tratamiento, intentando mantener la edad constante.
 
--  Para $\eta_{0i}$, la varianza se estima en $0.0562246$, lo cual representa la variabilidad entre sujetos en el intercepto del modelo. Es decir, indica cuánto difieren entre sí los niveles iniciales de recuperación funcional (cuando todas las covariables están centradas) entre los diferentes individuos.
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/prediccion.png" width="60%">
 
--  Para $\eta_{1i}$, la varianza se estima en $0.0002257$, lo que sugiere que la variabilidad entre sujetos en la pendiente asociada al tiempo `momento2` es extremadamente baja. En términos prácticos, esto implica que la evolución temporal de la recuperación funcional es muy similar entre individuos, y el modelo no detecta diferencias sustanciales en las tasas de cambio.
+---
 
--  Para $\varepsilon_{it}$, la varianza se estima en $0.0946870$, lo cual representa la variabilidad individualmente no explicada por el modelo, es decir, las diferencias residuales en la recuperación de un mismo individuo a lo largo del tiempo, luego de controlar por los efectos fijos y aleatorios.
+class: header_background
 
----    
- 
- 
- 
-     
+# Conclusión 
 
+El modelo multinivel ajustado permitió captar adecuadamente la evolución de la recuperación funcional en adultos mayores tras una fractura de muñeca. A partir de una estructura jerárquica con intercepto y pendiente aleatoria por individuo, se identificaron efectos significativos de variables como la edad, el tratamiento recibido, el lugar de residencia y el nivel funcional al ingreso. Si bien persisten desafíos técnicos como la singularidad de la matriz de varianzas, los resultados obtenidos reflejan trayectorias coherentes con la literatura clínica y ofrecen una base sólida para futuras mejoras en el modelado.
+
+---
