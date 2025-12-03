@@ -187,7 +187,8 @@ class: header_background
 
 Se puede observar la alta correlacion entre Barthel y la recuperación en cada momento del tiempo, esto tiene sentido debido a como se define la variable recuperación $recuperacion = \frac{barthel_{actual}-barthel_{ingreso}}{barthel_{previo}-barthel_{ingreso}}$
 .center[
-![](barthel.png)
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/barthel.png" width="60%">
+
 ]
 ---
 class: header_background
@@ -208,7 +209,8 @@ class: header_background
 
 Se observa un diseño desbalanceado en la variable temporal momento, dado que la cantidad de observaciones disponibles difiere entre los distintos tiempos de medición.
 
-![](desbalanceo.png)
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/desbalanceo.png" width="60%">
+
 
 ---
 
@@ -227,7 +229,8 @@ class: header_background
 
 Se comienza por discernir la estructura apropiada de la matriz $\pmb D$. Bajo la hipótesis nula, se asume que ningún efecto aleatorio $k$ tiene un aporte significativo al modelo (modelo lineal)
 
-![](matrizD.png)
+<img src="https://raw.githubusercontent.com/JimenaPadin/Modelos-Multinivel--Trabajo-final--2025/main/matrizD.png" width="60%">
+
 
 A partir de los modelos ajustados con `lmer(REML = FALSE)`, la significación de los componentes de varianza se evalúa empleando la mezcla de distribuciones propuesta por @Stram1994.
 
